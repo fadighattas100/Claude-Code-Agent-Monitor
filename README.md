@@ -1,0 +1,356 @@
+# Agent Dashboard
+
+### Real-time monitoring platform for Claude Code agent activity
+
+![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6.1-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-RFC_6455-010101?style=flat-square&logo=socketdotio&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
+
+---
+
+Track sessions, monitor agents in real-time, visualize tool usage, and observe subagent orchestration through a professional dark-themed web interface. Integrates directly with Claude Code via its native hook system.
+
+```mermaid
+graph LR
+    A["Claude Code<br/>Session"] -->|hooks fire on<br/>tool use / stop| B["Hook Handler<br/>(Node.js script)"]
+    B -->|HTTP POST| C["Dashboard Server<br/>(Express + SQLite)"]
+    C -->|WebSocket<br/>broadcast| D["Dashboard UI<br/>(React + Tailwind)"]
+    style A fill:#6366f1,stroke:#818cf8,color:#fff
+    style B fill:#1a1a28,stroke:#2a2a3d,color:#e4e4ed
+    style C fill:#1a1a28,stroke:#2a2a3d,color:#e4e4ed
+    style D fill:#10b981,stroke:#34d399,color:#fff
+```
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Dashboard** | Overview stats, active agent cards, recent activity feed |
+| **Kanban Board** | 5-column agent status board (Idle / Connected / Working / Completed / Error) |
+| **Sessions** | Searchable, filterable table of all Claude Code sessions |
+| **Session Detail** | Per-session agent cards and full event timeline |
+| **Activity Feed** | Real-time streaming event log with pause/resume |
+| **Live Updates** | WebSocket push -- no polling, instant UI updates |
+| **Auto-Discovery** | Sessions and agents are created automatically from hook events |
+| **Seed Data** | Built-in seed script for demos and development |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
+
+### 1. Install
+
+```bash
+git clone <repo-url> agent-dashboard
+cd agent-dashboard
+npm run setup
+```
+
+### 2. Configure Claude Code Hooks
+
+```bash
+npm run install-hooks
+```
+
+This adds hook entries to `~/.claude/settings.json` that forward events to the dashboard. Existing hooks are preserved.
+
+### 3. Start
+
+```bash
+# Development (hot reload on both server and client)
+npm run dev
+
+# Production (single process, built client)
+npm run build && npm start
+```
+
+### 4. Open
+
+| Mode | URL |
+|------|-----|
+| Development | `http://localhost:5173` |
+| Production | `http://localhost:4820` |
+
+### Optional: Seed Demo Data
+
+```bash
+npm run seed
+```
+
+Creates 8 sample sessions, 23 agents, and 106 events so you can explore the UI immediately.
+
+---
+
+## How It Works
+
+```mermaid
+sequenceDiagram
+    participant CC as Claude Code
+    participant HH as Hook Handler
+    participant API as Express Server
+    participant DB as SQLite
+    participant WS as WebSocket
+    participant UI as React Client
+
+    CC->>HH: stdin (JSON event)
+    HH->>API: POST /api/hooks/event
+    API->>DB: Insert/update records
+    API->>WS: Broadcast update
+    WS->>UI: Push message
+    UI->>UI: Re-render component
+
+    Note over CC,HH: Hooks fire on PreToolUse,<br/>PostToolUse, Stop,<br/>SubagentStop, Notification
+    Note over API,DB: Transactional writes<br/>with auto session/agent creation
+    Note over WS,UI: ~0ms latency,<br/>no polling
+```
+
+### Hook Lifecycle
+
+1. **Claude Code** fires a hook when a tool is used, a session ends, or a subagent completes
+2. **Hook Handler** (`scripts/hook-handler.js`) reads the JSON event from stdin and POSTs it to the API. Fails silently with a 5s timeout so it never blocks Claude Code
+3. **Server** processes the event inside a SQLite transaction:
+   - Auto-creates sessions and main agents on first contact
+   - Detects `Agent` tool calls to track subagent creation
+   - Updates agent status/current_tool on each tool use
+   - Marks everything completed on session stop
+4. **WebSocket** broadcasts the change to all connected clients
+5. **UI** receives the update and re-renders the affected components
+
+### Agent State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle: Agent created
+    idle --> connected: Session established
+    connected --> working: Tool use started
+    working --> connected: Tool use completed
+    working --> working: Different tool started
+    connected --> completed: Session ended
+    working --> completed: Session ended
+    working --> error: Error occurred
+    idle --> completed: Session ended
+    completed --> [*]
+    error --> [*]
+```
+
+### Session State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> active: First hook event received
+    active --> completed: Stop hook (normal)
+    active --> error: Stop hook (error)
+    active --> abandoned: No activity timeout
+    completed --> [*]
+    error --> [*]
+    abandoned --> [*]
+```
+
+---
+
+## Configuration
+
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `DASHBOARD_PORT` | `4820` | Port for the Express server |
+| `CLAUDE_DASHBOARD_PORT` | `4820` | Port used by hook handler to reach the server |
+| `NODE_ENV` | `development` | Set to `production` to serve the built client |
+
+---
+
+## npm Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run setup` | Install server and client dependencies |
+| `npm run dev` | Start server (watch mode) + client (Vite HMR) concurrently |
+| `npm run dev:server` | Start only the Express server with `--watch` |
+| `npm run dev:client` | Start only the Vite dev server |
+| `npm run build` | TypeScript check + Vite production build |
+| `npm start` | Start production server (serves built client) |
+| `npm run install-hooks` | Configure Claude Code hooks in `~/.claude/settings.json` |
+| `npm run seed` | Populate database with sample data |
+
+---
+
+## API Reference
+
+All endpoints return JSON. Error responses follow the shape `{ error: { code, message } }`.
+
+### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/health` | Returns `{ status: "ok", timestamp }` |
+
+### Sessions
+
+| Method | Path | Query Params | Description |
+|--------|------|-------------|-------------|
+| `GET` | `/api/sessions` | `status`, `limit`, `offset` | List sessions with agent counts |
+| `GET` | `/api/sessions/:id` | -- | Session detail with agents and events |
+| `POST` | `/api/sessions` | -- | Create session (idempotent on `id`) |
+| `PATCH` | `/api/sessions/:id` | -- | Update session status/metadata |
+
+### Agents
+
+| Method | Path | Query Params | Description |
+|--------|------|-------------|-------------|
+| `GET` | `/api/agents` | `status`, `session_id`, `limit`, `offset` | List agents with filters |
+| `GET` | `/api/agents/:id` | -- | Single agent detail |
+| `POST` | `/api/agents` | -- | Create agent |
+| `PATCH` | `/api/agents/:id` | -- | Update agent status/task/tool |
+
+### Events
+
+| Method | Path | Query Params | Description |
+|--------|------|-------------|-------------|
+| `GET` | `/api/events` | `session_id`, `limit`, `offset` | List events (newest first) |
+
+### Stats
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/stats` | Aggregate counts, status distributions, WS connections |
+
+### Hooks
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/hooks/event` | Receive and process a Claude Code hook event |
+
+**Hook event payload:**
+
+```json
+{
+  "hook_type": "PreToolUse",
+  "data": {
+    "session_id": "abc-123",
+    "tool_name": "Bash",
+    "tool_input": { "command": "ls -la" }
+  }
+}
+```
+
+### WebSocket
+
+Connect to `ws://localhost:4820/ws` to receive real-time push messages:
+
+```json
+{
+  "type": "agent_updated",
+  "data": { "id": "...", "status": "working", "current_tool": "Edit" },
+  "timestamp": "2026-03-05T15:43:01.800Z"
+}
+```
+
+**Message types:** `session_created`, `session_updated`, `agent_created`, `agent_updated`, `new_event`
+
+---
+
+## Hook Events
+
+The dashboard processes these Claude Code hook types:
+
+| Hook Type | Trigger | Dashboard Action |
+|-----------|---------|-----------------|
+| `PreToolUse` | Agent starts using a tool | Updates agent to `working`, sets `current_tool`. If tool is `Agent`, creates subagent record |
+| `PostToolUse` | Tool execution completed | Updates agent to `connected`, clears `current_tool` |
+| `Stop` | Session ended | Marks all agents `completed`, ends session |
+| `SubagentStop` | Subagent finished | Marks most recent working subagent `completed` |
+| `Notification` | Agent notification | Logs event |
+
+---
+
+## Data Storage
+
+- **Engine:** SQLite 3 via `better-sqlite3`
+- **Location:** `data/dashboard.db`
+- **Journal mode:** WAL (concurrent reads during writes)
+- **Reset:** Delete `data/dashboard.db` to clear all data
+
+---
+
+## Project Structure
+
+```
+agent-dashboard/
+|-- package.json                 # Root scripts + server dependencies
+|-- server/
+|   |-- index.js                 # Express app, HTTP server, static serving
+|   |-- db.js                    # SQLite schema, migrations, prepared statements
+|   |-- websocket.js             # WebSocket server with heartbeat
+|   +-- routes/
+|       |-- hooks.js             # Hook event processing (transactional)
+|       |-- sessions.js          # Session CRUD
+|       |-- agents.js            # Agent CRUD
+|       |-- events.js            # Event listing
+|       +-- stats.js             # Aggregate statistics
+|-- client/
+|   |-- package.json             # Client dependencies
+|   |-- index.html               # HTML entry point
+|   |-- vite.config.ts           # Vite + proxy config
+|   |-- tailwind.config.js       # Custom dark theme
+|   |-- tsconfig.json            # Strict TypeScript
+|   +-- src/
+|       |-- main.tsx             # React entry
+|       |-- App.tsx              # Router + WebSocket provider
+|       |-- index.css            # Tailwind + custom utilities
+|       |-- lib/
+|       |   |-- types.ts         # Shared TypeScript interfaces
+|       |   |-- api.ts           # Typed fetch client
+|       |   |-- format.ts        # Date/time formatting utilities
+|       |   +-- eventBus.ts      # Pub/sub for WebSocket distribution
+|       |-- hooks/
+|       |   +-- useWebSocket.ts  # Auto-reconnecting WebSocket hook
+|       |-- components/
+|       |   |-- Layout.tsx       # Shell with sidebar + outlet
+|       |   |-- Sidebar.tsx      # Navigation + connection indicator
+|       |   |-- AgentCard.tsx    # Agent info card with status
+|       |   |-- StatCard.tsx     # Metric card
+|       |   |-- StatusBadge.tsx  # Color-coded status pills
+|       |   +-- EmptyState.tsx   # Placeholder for empty lists
+|       +-- pages/
+|           |-- Dashboard.tsx    # Overview page
+|           |-- KanbanBoard.tsx  # Agent status columns
+|           |-- Sessions.tsx     # Sessions table
+|           |-- SessionDetail.tsx # Single session deep dive
+|           +-- ActivityFeed.tsx # Real-time event stream
+|-- scripts/
+|   |-- hook-handler.js          # Lightweight stdin-to-HTTP forwarder
+|   |-- install-hooks.js         # Auto-configures ~/.claude/settings.json
+|   +-- seed.js                  # Sample data generator
++-- data/
+    +-- dashboard.db             # SQLite database (gitignored)
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `better-sqlite3` fails to install | Ensure you have Node.js >= 18. On Windows, you may need the [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) C++ workload |
+| Hooks not firing | Run `npm run install-hooks` and restart Claude Code. Verify hooks exist in `~/.claude/settings.json` |
+| Dashboard shows no data | Ensure the server is running (`npm run dev`) before starting a Claude Code session. Check `http://localhost:4820/api/health` |
+| WebSocket disconnected | The client auto-reconnects every 2 seconds. Check that port 4820 is not blocked by a firewall |
+| Stale data after restart | The database persists across restarts. Run `npm run seed` for fresh demo data, or delete `data/dashboard.db` to reset |
+
+---
+
+## License
+
+MIT

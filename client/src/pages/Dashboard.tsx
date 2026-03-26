@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  LayoutDashboard,
   FolderOpen,
   Bot,
   Zap,
@@ -112,9 +113,16 @@ export function Dashboard() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-100 mb-1">Dashboard</h2>
-          <p className="text-sm text-gray-500">Real-time overview of Claude Code agent activity</p>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
+            <LayoutDashboard className="w-4.5 h-4.5 text-accent" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-100">Dashboard</h1>
+            <p className="text-xs text-gray-500">
+              Real-time overview of Claude Code agent activity
+            </p>
+          </div>
         </div>
         <button onClick={load} className="btn-ghost flex-shrink-0">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -172,9 +180,9 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
         {/* Active agents */}
-        <div>
+        <div className="min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-300">Active Agents</h3>
             <button onClick={() => navigate("/kanban")} className="btn-ghost text-xs">
@@ -202,8 +210,8 @@ export function Dashboard() {
 
                   return (
                     <div key={main.id}>
-                      <div className="flex items-center gap-1">
-                        {hasChildren ? (
+                      <div className="flex items-center gap-1 min-w-0">
+                        {hasChildren && (
                           <button
                             onClick={() =>
                               setExpandedAgents((prev) => {
@@ -213,7 +221,7 @@ export function Dashboard() {
                                 return next;
                               })
                             }
-                            className="p-1 text-gray-500 hover:text-gray-300 transition-colors"
+                            className="p-1 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
                           >
                             {isExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -221,12 +229,8 @@ export function Dashboard() {
                               <ChevronRight className="w-4 h-4" />
                             )}
                           </button>
-                        ) : (
-                          <span className="flex items-center justify-center w-6">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
-                          </span>
                         )}
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <AgentCard agent={main} />
                         </div>
                       </div>
@@ -262,7 +266,7 @@ export function Dashboard() {
               {activeAgents
                 .filter((a) => a.type === "subagent")
                 .map((agent) => (
-                  <div key={agent.id} className="ml-7">
+                  <div key={agent.id}>
                     <AgentCard agent={agent} />
                   </div>
                 ))}
@@ -271,7 +275,7 @@ export function Dashboard() {
         </div>
 
         {/* Recent activity */}
-        <div>
+        <div className="min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-300">Recent Activity</h3>
             <button onClick={() => navigate("/activity")} className="btn-ghost text-xs">

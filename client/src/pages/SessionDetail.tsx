@@ -194,8 +194,8 @@ export function SessionDetail() {
                     return (
                       <div key={main.id}>
                         {/* Main agent row */}
-                        <div className="flex items-center gap-1">
-                          {hasChildren ? (
+                        <div className="flex items-center gap-1 min-w-0">
+                          {hasChildren && (
                             <button
                               onClick={() =>
                                 setExpandedAgents((prev) => {
@@ -205,7 +205,7 @@ export function SessionDetail() {
                                   return next;
                                 })
                               }
-                              className="p-1 text-gray-500 hover:text-gray-300 transition-colors"
+                              className="p-1 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
                             >
                               {isExpanded ? (
                                 <ChevronDown className="w-4 h-4" />
@@ -213,12 +213,8 @@ export function SessionDetail() {
                                 <ChevronRight className="w-4 h-4" />
                               )}
                             </button>
-                          ) : (
-                            <span className="flex items-center justify-center w-6">
-                              <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
-                            </span>
                           )}
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <AgentCard agent={main} />
                           </div>
                         </div>

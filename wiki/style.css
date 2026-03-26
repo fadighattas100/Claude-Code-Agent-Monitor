@@ -705,6 +705,9 @@ tr:hover td {
 .ic-rose {
   background: rgba(244, 63, 94, 0.15);
 }
+.ic-teal {
+  background: rgba(20, 184, 166, 0.15);
+}
 
 .feature-card h3 {
   font-size: 14px;

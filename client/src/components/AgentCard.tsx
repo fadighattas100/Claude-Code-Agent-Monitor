@@ -24,12 +24,12 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
   return (
     <div
       onClick={handleClick}
-      className={`card-hover p-4 cursor-pointer animate-fade-in ${
+      className={`card-hover p-4 cursor-pointer animate-fade-in overflow-hidden ${
         isActive ? "border-l-2 border-l-emerald-500/50" : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
           <div
             className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
               agent.type === "main"
@@ -43,7 +43,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
               <GitBranch className="w-3.5 h-3.5" />
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 overflow-hidden">
             <p className="text-sm font-medium text-gray-200 truncate">{agent.name}</p>
             {agent.subagent_type && (
               <p className="text-[11px] text-gray-500 truncate">{agent.subagent_type}</p>
@@ -57,7 +57,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         <p className="text-xs text-gray-400 mb-3 line-clamp-2 leading-relaxed">{agent.task}</p>
       )}
 
-      <div className="flex items-center gap-4 text-[11px] text-gray-500">
+      <div className="flex items-center gap-4 text-[11px] text-gray-500 min-w-0 overflow-hidden">
         {agent.current_tool && (
           <span className="flex items-center gap-1">
             <Wrench className="w-3 h-3" />

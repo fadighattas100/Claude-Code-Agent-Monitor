@@ -173,6 +173,8 @@ npm run dev
 npm run build && npm start
 ```
 
+> **Makefile alternative** — all commands are also available via `make`. Run `make help` to see every target, or use shortcuts like `make dev`, `make build`, `make test`, etc.
+
 ### 4. Open
 
 | Mode        | URL                     |

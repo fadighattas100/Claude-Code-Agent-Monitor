@@ -16,6 +16,12 @@ export interface ToolRegistrar {
   ): void;
 }
 
+export interface ToolEntry {
+  name: string;
+  description: string;
+  handler: ToolHandler;
+}
+
 export function createToolRegistrar(server: McpServer, logger: Logger): ToolRegistrar {
   return (name, description, inputSchema, handler) => {
     server.registerTool(name, { description, inputSchema }, async (args) => {
@@ -32,5 +38,25 @@ export function createToolRegistrar(server: McpServer, logger: Logger): ToolRegi
         return errorResult(error);
       }
     });
+  };
+}
+
+/** Registrar that also collects tool entries for REPL mode */
+export function createDualRegistrar(
+  server: McpServer,
+  logger: Logger,
+  collector: ToolEntry[]
+): ToolRegistrar {
+  const mcpRegistrar = createToolRegistrar(server, logger);
+  return (name, description, inputSchema, handler) => {
+    mcpRegistrar(name, description, inputSchema, handler);
+    collector.push({ name, description, handler });
+  };
+}
+
+/** Registrar that only collects (no MCP server, for pure REPL mode) */
+export function createCollectorRegistrar(collector: ToolEntry[]): ToolRegistrar {
+  return (name, description, _inputSchema, handler) => {
+    collector.push({ name, description, handler });
   };
 }

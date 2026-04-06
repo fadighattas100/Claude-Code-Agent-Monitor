@@ -1,4 +1,5 @@
 export type LogLevel = "debug" | "info" | "warn" | "error";
+export type TransportMode = "stdio" | "http" | "repl";
 
 export interface AppConfig {
   serverName: string;
@@ -10,6 +11,9 @@ export interface AppConfig {
   allowMutations: boolean;
   allowDestructive: boolean;
   logLevel: LogLevel;
+  transport: TransportMode;
+  httpPort: number;
+  httpHost: string;
 }
 
 const LOCAL_DASHBOARD_HOSTS = new Set([
@@ -71,6 +75,12 @@ function parseDashboardUrl(raw: string | undefined): URL {
   return url;
 }
 
+function parseTransport(value: string | undefined): TransportMode {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "http" || normalized === "repl" || normalized === "stdio") return normalized;
+  return "stdio";
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     serverName: env.MCP_SERVER_NAME?.trim() || "agent-dashboard-mcp",
@@ -82,5 +92,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowMutations: parseBoolean(env.MCP_DASHBOARD_ALLOW_MUTATIONS, false),
     allowDestructive: parseBoolean(env.MCP_DASHBOARD_ALLOW_DESTRUCTIVE, false),
     logLevel: parseLogLevel(env.MCP_LOG_LEVEL),
+    transport: parseTransport(env.MCP_TRANSPORT),
+    httpPort: parseInteger(env.MCP_HTTP_PORT, 8819, 1, 65535),
+    httpHost: env.MCP_HTTP_HOST?.trim() || "127.0.0.1",
   };
 }

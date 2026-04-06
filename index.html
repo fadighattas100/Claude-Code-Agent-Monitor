@@ -479,7 +479,7 @@
 
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
-              <img src="images/dashboard.png" alt="Claude Code Agent Monitor dashboard showing live agent cards, stats, and recent activity feed" loading="lazy" />
+              <img src="images/analytics.png" alt="Claude Code Agent Monitor dashboard showing live agent cards, stats, and recent activity feed" loading="lazy" />
               <div class="screenshot-caption"><span class="caption-icon">📡</span> Live dashboard — real-time agent cards, stats, and activity feed</div>
             </div>
           </div>
@@ -661,9 +661,12 @@
               <div class="feature-icon ic-blue">🔌</div>
               <h3>Local MCP Server</h3>
               <p>
-                Enterprise-grade local MCP sidecar under <code>mcp/</code> with typed tools,
-                transport-safe runtime, retry-aware API access, and policy gates for mutation and
-                destructive operations.
+                Enterprise-grade local MCP sidecar under <code>mcp/</code> with three transport
+                modes (stdio, HTTP+SSE, interactive REPL), 25 typed tools across 6 domains,
+                retry-aware API access, and tiered policy gates for mutation and destructive
+                operations. HTTP mode serves Streamable HTTP and legacy SSE protocols. REPL mode
+                provides tab-completed interactive tool invocation with colored output and JSON
+                syntax highlighting.
               </p>
             </div>
             <div class="feature-card">
@@ -850,7 +853,9 @@ npm run dev
 # 4. (Optional) Build and run the local MCP server
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start
+npm run mcp:start              # stdio (for MCP host integration)
+npm run mcp:start:http         # HTTP + SSE server on port 8819
+npm run mcp:start:repl         # interactive CLI with tab completion
 
 # 5. (Optional) Sync Codex runtime extension folders
 npm run codex:sync
@@ -898,13 +903,17 @@ docker run -d --name agent-monitor \
           <p>
             This repository also ships a local MCP server under <code>mcp/</code> and extension
             scaffolding for both Claude Code and Codex. These are optional for the dashboard UI, but
-            recommended for complete local-agent workflows.
+            recommended for complete local-agent workflows. The MCP server supports stdio (for host
+            integration), HTTP+SSE (for remote clients), and an interactive REPL (for operator
+            debugging).
           </p>
           <div class="code-header"><span class="code-lang">bash</span></div>
           <pre><code># MCP lifecycle
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start
+npm run mcp:start              # stdio (default — for MCP hosts)
+npm run mcp:start:http         # HTTP + SSE server on port 8819
+npm run mcp:start:repl         # interactive CLI with tab completion
 
 # Sync codex extension templates into runtime dirs
 # (copies codex/agents -> .codex/agents and codex/skills -> .agents/skills)
@@ -990,6 +999,21 @@ npm run codex:sync</code></pre>
                   <td><code>MCP_DASHBOARD_BASE_URL</code></td>
                   <td><code>http://127.0.0.1:4820</code></td>
                   <td>Base URL used by the local MCP server when calling dashboard APIs</td>
+                </tr>
+                <tr>
+                  <td><code>MCP_TRANSPORT</code></td>
+                  <td><code>stdio</code></td>
+                  <td>MCP transport mode: <code>stdio</code>, <code>http</code>, <code>repl</code></td>
+                </tr>
+                <tr>
+                  <td><code>MCP_HTTP_PORT</code></td>
+                  <td><code>8819</code></td>
+                  <td>Port for the MCP HTTP+SSE server (only when <code>MCP_TRANSPORT=http</code>)</td>
+                </tr>
+                <tr>
+                  <td><code>MCP_HTTP_HOST</code></td>
+                  <td><code>127.0.0.1</code></td>
+                  <td>Bind address for the MCP HTTP server</td>
                 </tr>
                 <tr>
                   <td><code>DASHBOARD_DB_PATH</code></td>
@@ -1135,12 +1159,32 @@ npm run codex:sync</code></pre>
                 <tr>
                   <td><code>mcp:start</code></td>
                   <td><code>npm run mcp:start</code></td>
-                  <td>Start compiled MCP server over stdio transport</td>
+                  <td>Start MCP server (stdio transport — for MCP hosts)</td>
+                </tr>
+                <tr>
+                  <td><code>mcp:start:http</code></td>
+                  <td><code>npm run mcp:start:http</code></td>
+                  <td>Start MCP HTTP+SSE server on port 8819 (Streamable HTTP + legacy SSE)</td>
+                </tr>
+                <tr>
+                  <td><code>mcp:start:repl</code></td>
+                  <td><code>npm run mcp:start:repl</code></td>
+                  <td>Start interactive MCP REPL with tab completion and colored output</td>
                 </tr>
                 <tr>
                   <td><code>mcp:dev</code></td>
                   <td><code>npm run mcp:dev</code></td>
-                  <td>Run MCP server in dev mode with <code>tsx</code></td>
+                  <td>Run MCP server in dev mode with <code>tsx</code> (stdio)</td>
+                </tr>
+                <tr>
+                  <td><code>mcp:dev:http</code></td>
+                  <td><code>npm run mcp:dev:http</code></td>
+                  <td>Run MCP HTTP server in dev mode with <code>tsx</code></td>
+                </tr>
+                <tr>
+                  <td><code>mcp:dev:repl</code></td>
+                  <td><code>npm run mcp:dev:repl</code></td>
+                  <td>Run MCP REPL in dev mode with <code>tsx</code></td>
                 </tr>
                 <tr>
                   <td><code>mcp:docker:build</code></td>
@@ -1184,8 +1228,8 @@ npm run codex:sync</code></pre>
           <h2>System Architecture</h2>
           <p>
             Core dashboard telemetry is composed of three processes (Claude hook source, dashboard
-            server, browser UI). When the local MCP sidecar is enabled, a fourth process
-            (<code>mcp/</code>) integrates with the same dashboard API.
+            server, browser UI). When the local MCP sidecar is enabled, it integrates with the same
+            dashboard API via stdio, HTTP+SSE, or interactive REPL transport.
           </p>
 
           <div class="diagram-wrap">
@@ -2211,9 +2255,11 @@ npm run codex:sync</code></pre>
           <div class="section-label">◈ Integrations</div>
           <h2>MCP &amp; Agent Extensions</h2>
           <p>
-            In addition to dashboard telemetry, this project now includes a production-grade local
+            In addition to dashboard telemetry, this project includes a production-grade local
             MCP server and complete extension scaffolding for both Claude Code and Codex. This gives
-            agents a richer local tool surface while keeping all execution local-first.
+            agents a richer local tool surface while keeping all execution local-first. The MCP
+            server supports three transport modes: stdio for host integration, HTTP+SSE for remote
+            clients, and an interactive REPL for operator debugging.
           </p>
 
           <div class="diagram-wrap">
@@ -2223,6 +2269,8 @@ npm run codex:sync</code></pre>
                 subgraph Hosts["Agent Hosts"]
                   CC["Claude Code"]
                   CX["Codex"]
+                  RC["Remote Client"]
+                  OP["Operator"]
                 end
 
                 subgraph Layers["Instruction + Skill Layers"]
@@ -2230,25 +2278,34 @@ npm run codex:sync</code></pre>
                   AG["AGENTS.md + codex/rules + codex/skills + codex/agents"]
                 end
 
-                subgraph Runtime["Local Runtime"]
-                  MCP["Local MCP Server (stdio)\nmcp/build/index.js"]
+                subgraph Runtime["Local MCP Runtime"]
+                  MCP_STDIO["MCP Server (stdio)"]
+                  MCP_HTTP["MCP Server (HTTP+SSE :8819)"]
+                  MCP_REPL["MCP Server (REPL)"]
                   API["Dashboard API\nhttp://127.0.0.1:4820"]
                 end
 
                 CC --> CL
                 CX --> AG
-                CC -->|"MCP tool calls"| MCP
-                MCP -->|"REST"| API
+                CC -->|"stdin/stdout"| MCP_STDIO
+                RC -->|"POST /mcp · GET /sse"| MCP_HTTP
+                OP -->|"interactive CLI"| MCP_REPL
+                MCP_STDIO -->|"REST"| API
+                MCP_HTTP -->|"REST"| API
+                MCP_REPL -->|"REST"| API
             </div>
             <p class="diagram-label">
-              Local extension architecture: host instructions + skills + local MCP sidecar
+              Local extension architecture: host instructions + skills + multi-transport MCP sidecar
             </p>
           </div>
 
           <h3>Local MCP Server Runtime</h3>
           <p>
-            The <code>mcp/</code> package exposes dashboard-oriented tools for AI agents. Mutation and
-            destructive operations are policy-gated by environment variables and disabled by default.
+            The <code>mcp/</code> package exposes dashboard-oriented tools for AI agents across three
+            transport modes. Mutation and destructive operations are policy-gated by environment
+            variables and disabled by default. HTTP mode serves both Streamable HTTP (protocol
+            2025-11-25) and legacy SSE (protocol 2024-11-05). REPL mode provides tab-completed
+            interactive tool invocation with colored output and JSON syntax highlighting.
           </p>
           <div class="table-wrap">
             <table>
@@ -2263,22 +2320,32 @@ npm run codex:sync</code></pre>
                 <tr>
                   <td>MCP source</td>
                   <td><code>mcp/src/</code></td>
-                  <td>TypeScript server, tools, policy guards, transport bootstrap</td>
+                  <td>TypeScript server, tools, policy guards, transport layer, CLI UI</td>
                 </tr>
                 <tr>
                   <td>MCP build output</td>
                   <td><code>mcp/build/</code></td>
-                  <td>Compiled JavaScript used by local stdio server runtime</td>
+                  <td>Compiled JavaScript runtime for all transport modes</td>
                 </tr>
                 <tr>
                   <td>MCP docs</td>
                   <td><code>mcp/README.md</code></td>
-                  <td>Tool catalog, architecture diagrams, host integration examples</td>
+                  <td>Tool catalog, architecture diagrams, host integration examples, REPL guide</td>
+                </tr>
+                <tr>
+                  <td>Transport layer</td>
+                  <td><code>mcp/src/transports/</code></td>
+                  <td>HTTP+SSE server, interactive REPL, tool handler collector</td>
+                </tr>
+                <tr>
+                  <td>CLI UI</td>
+                  <td><code>mcp/src/ui/</code></td>
+                  <td>ANSI banner, colors, formatter with tables, boxes, JSON highlighting</td>
                 </tr>
                 <tr>
                   <td>Runtime commands</td>
-                  <td><code>npm run mcp:install|typecheck|build|start|dev|docker:build|podman:build</code></td>
-                  <td>Install, validate, compile, and run MCP locally</td>
+                  <td><code>npm run mcp:start|start:http|start:repl|dev|dev:http|dev:repl</code></td>
+                  <td>Start MCP in stdio, HTTP+SSE, or REPL mode (production or dev)</td>
                 </tr>
               </tbody>
             </table>

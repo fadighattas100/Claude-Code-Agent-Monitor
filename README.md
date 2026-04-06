@@ -131,7 +131,7 @@ The dashboard offers a comprehensive set of features to monitor and analyze your
 | **Cost Tracking**                  | Per-model cost estimation with configurable pricing rules and per-session breakdowns. Compaction-aware token accounting preserves totals across context compressions. Transcript reads are cached with incremental byte-offset updates for efficient token extraction        |
 | **Notifications**                  | Browser notifications for session starts, completions, errors, and subagent spawns. Configurable per-event toggles with permission management                                                                                                                                |
 | **Settings**                       | System info, hook status, model pricing management, notification preferences, data export, session cleanup                                                                                                                                                                   |
-| **MCP Server (Local)**             | Enterprise-grade local MCP server in `mcp/` exposing dashboard operations as tools for Claude Code and other MCP hosts, with strict input schemas, retries/timeouts, localhost-only API target enforcement, and mutation/destructive safety gates                            |
+| **MCP Server (Local)**             | Enterprise-grade local MCP server in `mcp/` with three transport modes (stdio, HTTP+SSE, interactive REPL), 25 typed tools across 6 domains, strict input schemas, retry/backoff, localhost-only API enforcement, and tiered mutation/destructive safety gates. HTTP mode serves Streamable HTTP (2025-11-25) and legacy SSE (2024-11-05) on configurable port. REPL mode provides tab-completed interactive tool invocation with colored output |
 | **Workflows**                      | D3.js-powered visualization page with 11 interactive sections: agent orchestration DAG, tool execution Sankey diagram, collaboration network, subagent effectiveness scorecards, detected workflow patterns, model delegation flow, error propagation map, concurrency timeline, session complexity scatter, compaction impact analysis, and per-session drill-in with agent tree and tool timeline. Cross-filtering, JSON export, and real-time WebSocket auto-refresh with 3-second debounce |
 | **Compaction Tracking**            | Detects `/compact` events from JSONL transcripts, creates compaction agents and events. Backfills legacy compactions on startup. Periodic scanner catches compactions within 2 minutes even when no hooks fire. Shares the transcript cache so no duplicate file reads occur |
 | **Subsessions/Resumed Sessions**   | Automatically reactivates sessions when new events arrive, correctly handles `/resume` and orphaned sessions. Periodic sweep (every 2 min) marks abandoned sessions that slip past event-based detection                                                                     |
@@ -190,15 +190,19 @@ npm run build && npm start
 ```bash
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start
+npm run mcp:start              # stdio (default — for MCP host integration)
+npm run mcp:start:http         # HTTP + SSE server on port 8819
+npm run mcp:start:repl         # interactive CLI with tab completion
 ```
 
-Then configure your MCP host (Claude Code / Claude Desktop / other MCP clients) to run:
+For stdio mode, configure your MCP host (Claude Code / Claude Desktop / other MCP clients):
 
 - command: `node`
 - args: `["<ABSOLUTE_PATH>/mcp/build/index.js"]`
 
-See [mcp/README.md](./mcp/README.md) for full host configuration, safety flags, and tool catalog.
+For HTTP mode, point remote MCP clients at `http://127.0.0.1:8819/mcp` (Streamable HTTP) or `http://127.0.0.1:8819/sse` (legacy SSE).
+
+See [mcp/README.md](./mcp/README.md) for full host configuration, transport details, safety flags, and tool catalog.
 
 ### Optional: Seed Demo Data
 
@@ -382,8 +386,12 @@ flowchart LR
 | `npm run clear-data`    | Delete all sessions, agents, events, and token usage            |
 | `npm run mcp:install`   | Install dependencies for local MCP package (`mcp/`)       |
 | `npm run mcp:build`     | Build MCP server TypeScript into `mcp/build/`             |
-| `npm run mcp:start`     | Start MCP server from `mcp/build/index.js`                |
-| `npm run mcp:dev`       | Run MCP server in dev mode (`tsx`)                        |
+| `npm run mcp:start`     | Start MCP server (stdio transport — for MCP hosts)        |
+| `npm run mcp:start:http`| Start MCP server (HTTP + SSE transport on port 8819)      |
+| `npm run mcp:start:repl`| Start MCP server (interactive REPL with tab completion)   |
+| `npm run mcp:dev`       | Run MCP server in dev mode (`tsx`, stdio)                 |
+| `npm run mcp:dev:http`  | Run MCP server in dev mode (`tsx`, HTTP + SSE)            |
+| `npm run mcp:dev:repl`  | Run MCP server in dev mode (`tsx`, interactive REPL)      |
 | `npm run mcp:typecheck` | Type-check MCP source without emitting build output        |
 | `npm run mcp:docker:build` | Build MCP container image with Docker (`agent-dashboard-mcp:local`) |
 | `npm run mcp:podman:build` | Build MCP container image with Podman (`localhost/agent-dashboard-mcp:local`) |
@@ -460,23 +468,69 @@ graph TD
 
 ## MCP Integration
 
-This project includes a local, production-grade MCP server at `mcp/` that exposes dashboard operations as tools for AI agents.
+This project includes a local, production-grade MCP server at `mcp/` that exposes dashboard operations as tools for AI agents. It supports three transport modes to suit different integration scenarios.
+
+### MCP Transport Modes
+
+```mermaid
+flowchart LR
+    subgraph Transports["Transport Modes"]
+        STDIO["stdio\n(default)"]
+        HTTP["HTTP + SSE\n(port 8819)"]
+        REPL["Interactive REPL\n(terminal CLI)"]
+    end
+
+    subgraph Protocols["Wire Protocols"]
+        P1["JSON-RPC\nstdin/stdout"]
+        P2["Streamable HTTP (2025-11-25)\nLegacy SSE (2024-11-05)"]
+        P3["Direct invocation\ntab completion + colored output"]
+    end
+
+    STDIO --> P1
+    HTTP --> P2
+    REPL --> P3
+
+    style STDIO fill:#6366f1,stroke:#818cf8,color:#fff
+    style HTTP fill:#f59e0b,stroke:#fbbf24,color:#000
+    style REPL fill:#a855f7,stroke:#c084fc,color:#fff
+```
+
+| Mode | Command | Use Case |
+| --- | --- | --- |
+| **stdio** | `npm run mcp:start` | Claude Code, Claude Desktop, IDE MCP hosts |
+| **HTTP** | `npm run mcp:start:http` | Remote MCP clients, web integrations, multi-session |
+| **REPL** | `npm run mcp:start:repl` | Ops debugging, manual tool invocation, local admin |
 
 ### MCP Architecture
 
 ```mermaid
 graph LR
     HOST["MCP Host<br/>(Claude Code / Claude Desktop)"]
-    MCP["Local MCP Server<br/>mcp/build/index.js<br/>STDIO transport"]
+    HTTP_CLIENT["Remote MCP Client"]
+    OPERATOR["Operator CLI"]
+
+    MCP_STDIO["MCP Server<br/>stdio"]
+    MCP_HTTP["MCP Server<br/>HTTP :8819"]
+    MCP_REPL["MCP Server<br/>REPL"]
+
     API["Dashboard API<br/>Express /api/*"]
     DB["SQLite<br/>data/dashboard.db"]
 
-    HOST -->|"tools/list, tools/call"| MCP
-    MCP -->|"HTTP localhost only"| API
+    HOST -->|"stdin/stdout"| MCP_STDIO
+    HTTP_CLIENT -->|"POST /mcp · GET /sse"| MCP_HTTP
+    OPERATOR -->|"interactive CLI"| MCP_REPL
+
+    MCP_STDIO --> API
+    MCP_HTTP --> API
+    MCP_REPL --> API
     API --> DB
 
     style HOST fill:#6366f1,stroke:#818cf8,color:#fff
-    style MCP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style HTTP_CLIENT fill:#f59e0b,stroke:#fbbf24,color:#000
+    style OPERATOR fill:#a855f7,stroke:#c084fc,color:#fff
+    style MCP_STDIO fill:#0f766e,stroke:#14b8a6,color:#fff
+    style MCP_HTTP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style MCP_REPL fill:#0f766e,stroke:#14b8a6,color:#fff
     style API fill:#339933,stroke:#5cb85c,color:#fff
     style DB fill:#003B57,stroke:#005f8a,color:#fff
 ```
@@ -499,6 +553,30 @@ graph TD
     ROOT --> EVT
     ROOT --> PRC
     ROOT --> MNT
+```
+
+### MCP Safety Model
+
+```mermaid
+flowchart TD
+    CALL["tools/call"] --> VALIDATE["zod input validation"]
+    VALIDATE --> TYPE{"Tool type?"}
+    TYPE -->|Read-only| EXEC["Execute"]
+    TYPE -->|Mutation| M_FLAG{"ALLOW_MUTATIONS?"}
+    M_FLAG -->|No| DENY1["❌ Reject"]
+    M_FLAG -->|Yes| DEST{"Destructive?"}
+    DEST -->|No| EXEC
+    DEST -->|Yes| D_FLAG{"ALLOW_DESTRUCTIVE?"}
+    D_FLAG -->|No| DENY2["❌ Reject"]
+    D_FLAG -->|Yes| TOKEN{"confirmation_token?"}
+    TOKEN -->|Invalid| DENY3["❌ Reject"]
+    TOKEN -->|Valid| EXEC
+    EXEC --> RESULT["Return tool result"]
+
+    style EXEC fill:#339933,stroke:#5cb85c,color:#fff
+    style DENY1 fill:#dc2626,stroke:#f87171,color:#fff
+    style DENY2 fill:#dc2626,stroke:#f87171,color:#fff
+    style DENY3 fill:#dc2626,stroke:#f87171,color:#fff
 ```
 
 ### MCP Operational Modes
@@ -868,12 +946,27 @@ graph LR
     style P_DIST fill:#646CFF,stroke:#818cf8,color:#fff
 ```
 
-Optional local MCP sidecar:
+Optional local MCP sidecar (supports stdio, HTTP+SSE, and REPL transports):
 
 ```mermaid
 graph LR
-    M["MCP Server<br/>npm run mcp:start"] --> D["Dashboard Server<br/>:4820"]
-    H["MCP Host<br/>(Claude Code / Claude Desktop)"] --> M
+    subgraph "MCP Transport Options"
+        M_STDIO["MCP Server (stdio)<br/>npm run mcp:start"]
+        M_HTTP["MCP Server (HTTP)<br/>npm run mcp:start:http<br/>:8819"]
+        M_REPL["MCP Server (REPL)<br/>npm run mcp:start:repl"]
+    end
+
+    H["MCP Host"] -->|"stdin/stdout"| M_STDIO
+    RC["Remote Client"] -->|"POST /mcp · GET /sse"| M_HTTP
+    OP["Operator"] -->|"interactive CLI"| M_REPL
+
+    M_STDIO --> D["Dashboard Server<br/>:4820"]
+    M_HTTP --> D
+    M_REPL --> D
+
+    style M_STDIO fill:#0f766e,stroke:#14b8a6,color:#fff
+    style M_HTTP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style M_REPL fill:#0f766e,stroke:#14b8a6,color:#fff
 ```
 
 ---
@@ -884,7 +977,7 @@ graph LR
 agent-dashboard/
 |-- CLAUDE.md                   # Claude Code project memory and working agreements
 |-- AGENTS.md                   # Codex project instructions
-|-- package.json                 # Root scripts (dashboard + MCP helpers) + server dependencies
+|-- package.json                # Root scripts (dashboard + MCP helpers) + server dependencies
 |-- .claude/
 |   +-- rules/                  # Path-scoped Claude rules
 |   +-- skills/                 # Claude reusable project skills
@@ -922,8 +1015,8 @@ agent-dashboard/
 |       |   |-- format.ts        # Date/time formatting utilities
 |       |   +-- eventBus.ts      # Pub/sub for WebSocket distribution
 |       |-- hooks/
-|       |   |-- useWebSocket.ts     # Auto-reconnecting WebSocket hook
-|       |   +-- useNotifications.ts # Browser notification triggers from WebSocket events
+|       |   |-- useWebSocket.ts      # Auto-reconnecting WebSocket hook
+|       |   +-- useNotifications.ts  # Browser notification triggers from WebSocket events
 |       |-- components/
 |       |   |-- Layout.tsx       # Shell with sidebar + outlet
 |       |   |-- Sidebar.tsx      # Navigation + connection indicator
@@ -932,7 +1025,7 @@ agent-dashboard/
 |       |   |-- StatusBadge.tsx  # Color-coded status pills
 |       |   |-- EmptyState.tsx   # Placeholder for empty lists
 |       |   +-- workflows/       # D3.js workflow visualization components
-|       |       |-- OrchestrationDAG.tsx           # Horizontal DAG of agent spawning patterns
+|       |       |-- OrchestrationDAG.tsx            # Horizontal DAG of agent spawning patterns
 |       |       |-- ToolExecutionFlow.tsx           # d3-sankey diagram of tool-to-tool transitions
 |       |       |-- AgentCollaborationNetwork.tsx   # Force-directed agent pipeline graph
 |       |       |-- SubagentEffectiveness.tsx       # Scorecard grid with SVG success rings
@@ -963,13 +1056,15 @@ agent-dashboard/
 |   |-- package.json             # MCP package scripts + dependencies
 |   |-- README.md                # MCP setup, host config, tool catalog, safety model
 |   |-- src/
-|   |   |-- index.ts             # MCP runtime entrypoint
+|   |   |-- index.ts             # MCP runtime entrypoint (transport router)
 |   |   |-- server.ts            # MCP server assembly
-|   |   |-- clients/             # Dashboard API client
-|   |   |-- config/              # Environment/config parsing
-|   |   |-- core/                # Logger/tool registry/result helpers
+|   |   |-- clients/             # Dashboard API client with retry/backoff
+|   |   |-- config/              # Environment/CLI config parsing
+|   |   |-- core/                # Logger, tool registry, result helpers
 |   |   |-- policy/              # Mutation/destructive guards
-|   |   |-- tools/               # Domain-specific tool modules
+|   |   |-- tools/               # Domain-specific tool modules (6 domains)
+|   |   |-- transports/          # HTTP+SSE server, REPL, tool collector
+|   |   |-- ui/                  # ANSI banner, colors, formatter, tables
 |   |   +-- types/               # Shared MCP type definitions
 |   +-- build/                   # Built MCP runtime output
 |-- codex/

@@ -772,23 +772,56 @@ graph TD
 
 ## MCP Integration
 
-The repository includes an enterprise-grade local MCP server in `mcp/` that exposes dashboard functionality as tools for MCP hosts such as Claude Code and Claude Desktop.
+The repository includes an enterprise-grade local MCP server in `mcp/` that exposes dashboard functionality as tools for MCP hosts such as Claude Code and Claude Desktop. It supports three transport modes: stdio (for MCP host child-process integration), HTTP+SSE (for remote/networked clients), and an interactive REPL (for operator debugging).
+
+### MCP Transport Selection
+
+```mermaid
+flowchart TD
+    START["MCP Server Start"] --> ARG{"CLI arg or env?"}
+    ARG -->|"--transport=stdio\nor default"| STDIO["stdio transport\nJSON-RPC over stdin/stdout"]
+    ARG -->|"--transport=http\nor --http"| HTTP["HTTP + SSE transport\nExpress on :8819"]
+    ARG -->|"--transport=repl\nor --repl"| REPL["Interactive REPL\nreadline with tab completion"]
+
+    STDIO --> HOST["MCP Host\n(Claude Code / Desktop)"]
+    HTTP --> ENDPOINTS["Endpoints:\n/mcp (Streamable HTTP)\n/sse (Legacy SSE)\n/messages (Legacy POST)\n/health (status)"]
+    REPL --> CLI["Operator Terminal\ncolored output, JSON highlighting\ntool invocation, domain browsing"]
+
+    style STDIO fill:#6366f1,stroke:#818cf8,color:#fff
+    style HTTP fill:#f59e0b,stroke:#fbbf24,color:#000
+    style REPL fill:#a855f7,stroke:#c084fc,color:#fff
+```
 
 ### MCP Runtime Topology
 
 ```mermaid
 graph LR
     HOST["MCP Host<br/>(Claude Code / Claude Desktop)"]
-    MCP["MCP Server<br/>mcp/build/index.js<br/>STDIO"]
+    HTTP_CLIENT["Remote MCP Client"]
+    OPERATOR["Operator CLI"]
+
+    MCP_STDIO["MCP Server<br/>stdio"]
+    MCP_HTTP["MCP Server<br/>HTTP+SSE :8819"]
+    MCP_REPL["MCP Server<br/>REPL"]
+
     API["Dashboard API<br/>http://127.0.0.1:4820/api/*"]
     DB["SQLite"]
 
-    HOST -->|"tools/list + tools/call"| MCP
-    MCP -->|"validated HTTP requests"| API
+    HOST -->|"stdin/stdout"| MCP_STDIO
+    HTTP_CLIENT -->|"POST /mcp · GET /sse"| MCP_HTTP
+    OPERATOR -->|"interactive CLI"| MCP_REPL
+
+    MCP_STDIO -->|"validated HTTP"| API
+    MCP_HTTP -->|"validated HTTP"| API
+    MCP_REPL -->|"validated HTTP"| API
     API --> DB
 
     style HOST fill:#6366f1,stroke:#818cf8,color:#fff
-    style MCP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style HTTP_CLIENT fill:#f59e0b,stroke:#fbbf24,color:#000
+    style OPERATOR fill:#a855f7,stroke:#c084fc,color:#fff
+    style MCP_STDIO fill:#0f766e,stroke:#14b8a6,color:#fff
+    style MCP_HTTP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style MCP_REPL fill:#0f766e,stroke:#14b8a6,color:#fff
     style API fill:#339933,stroke:#5cb85c,color:#fff
     style DB fill:#003B57,stroke:#005f8a,color:#fff
 ```
@@ -797,7 +830,7 @@ graph LR
 
 ```mermaid
 graph TD
-    ENTRY["src/index.ts"]
+    ENTRY["src/index.ts<br/>(transport router)"]
     SERVER["src/server.ts"]
     CONFIG["config/app-config.ts"]
     CLIENT["clients/dashboard-api-client.ts"]
@@ -806,13 +839,23 @@ graph TD
     TOOLS["tools/index.ts"]
     DOMAINS["tools/domains/*<br/>observability, sessions, agents,<br/>events, pricing, maintenance"]
 
+    T_HTTP["transports/http-server.ts<br/>Express SSE + Streamable HTTP"]
+    T_REPL["transports/repl.ts<br/>readline + tab completion"]
+    T_COLL["transports/tool-collector.ts<br/>handler collection for REPL"]
+    UI["ui/*<br/>banner, colors, formatter"]
+
     ENTRY --> CONFIG
     ENTRY --> SERVER
+    ENTRY --> T_HTTP
+    ENTRY --> T_REPL
+    ENTRY --> T_COLL
     SERVER --> TOOLS
     TOOLS --> DOMAINS
     DOMAINS --> CLIENT
     DOMAINS --> POLICY
     DOMAINS --> CORE
+    T_HTTP --> UI
+    T_REPL --> UI
 ```
 
 ### MCP Safety Model
@@ -1082,18 +1125,39 @@ graph LR
 
 ### MCP Sidecar (Optional)
 
+The MCP server runs as a sidecar alongside the dashboard, connecting to the same API. It supports three transport modes:
+
 ```mermaid
 graph LR
-    MCP["MCP Server<br/>npm run mcp:start"] --> API["Dashboard API<br/>:4820"]
-    HOST["MCP Host"] --> MCP
+    subgraph "MCP Transports"
+        M_STDIO["stdio\nnpm run mcp:start"]
+        M_HTTP["HTTP+SSE\nnpm run mcp:start:http\n:8819"]
+        M_REPL["REPL\nnpm run mcp:start:repl"]
+    end
+
+    HOST["MCP Host"] -->|"stdin/stdout"| M_STDIO
+    RC["Remote Client"] -->|"POST /mcp · GET /sse"| M_HTTP
+    OP["Operator"] -->|"interactive CLI"| M_REPL
+
+    M_STDIO --> API["Dashboard API<br/>:4820"]
+    M_HTTP --> API
+    M_REPL --> API
+
+    style M_STDIO fill:#0f766e,stroke:#14b8a6,color:#fff
+    style M_HTTP fill:#0f766e,stroke:#14b8a6,color:#fff
+    style M_REPL fill:#0f766e,stroke:#14b8a6,color:#fff
 ```
 
 | Command | Purpose |
 | --- | --- |
 | `npm run mcp:install` | Install MCP package dependencies |
 | `npm run mcp:build` | Compile MCP server to `mcp/build/` |
-| `npm run mcp:start` | Run compiled MCP server |
-| `npm run mcp:dev` | Run MCP server with `tsx` |
+| `npm run mcp:start` | Start MCP server (stdio, for MCP hosts) |
+| `npm run mcp:start:http` | Start MCP HTTP+SSE server on port 8819 |
+| `npm run mcp:start:repl` | Start interactive MCP REPL |
+| `npm run mcp:dev` | Run MCP server in dev mode (stdio, `tsx`) |
+| `npm run mcp:dev:http` | Run MCP HTTP server in dev mode (`tsx`) |
+| `npm run mcp:dev:repl` | Run MCP REPL in dev mode (`tsx`) |
 | `npm run mcp:typecheck` | Type-check MCP source |
 | `npm run mcp:docker:build` | Build MCP container image with Docker |
 | `npm run mcp:podman:build` | Build MCP container image with Podman |

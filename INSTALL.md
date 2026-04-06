@@ -107,13 +107,26 @@ If you want AI agents to call dashboard functionality through MCP tools, run the
 ```bash
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start
+npm run mcp:start              # stdio (for MCP host integration)
+npm run mcp:start:http         # HTTP + SSE server on port 8819
+npm run mcp:start:repl         # interactive CLI with tab completion
 ```
+
+The MCP server supports three transport modes:
 
 ```mermaid
 graph LR
-  HOST["MCP Host"] --> MCP["Local MCP Server<br/>mcp/build/index.js"]
-  MCP --> API["Dashboard API<br/>http://127.0.0.1:4820/api/*"]
+    HOST["MCP Host<br/>(Claude Code / Desktop)"] -->|"stdin/stdout"| STDIO["stdio mode<br/>mcp:start"]
+    RC["Remote Client"] -->|"POST /mcp<br/>GET /sse"| HTTP["HTTP mode<br/>mcp:start:http<br/>:8819"]
+    OP["Operator"] -->|"interactive CLI"| REPL["REPL mode<br/>mcp:start:repl"]
+
+    STDIO --> API["Dashboard API<br/>http://127.0.0.1:4820/api/*"]
+    HTTP --> API
+    REPL --> API
+
+    style STDIO fill:#6366f1,stroke:#818cf8,color:#fff
+    style HTTP fill:#f59e0b,stroke:#fbbf24,color:#000
+    style REPL fill:#a855f7,stroke:#c084fc,color:#fff
 ```
 
 See [mcp/README.md](./mcp/README.md) for host config, tool catalog, and safety flags.

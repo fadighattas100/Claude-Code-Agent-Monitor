@@ -94,6 +94,9 @@ Container-specific behavior:
 | `MCP_DASHBOARD_BASE_URL` | `http://127.0.0.1:4820` | Base URL used by the local MCP server to call dashboard APIs |
 | `MCP_DASHBOARD_ALLOW_MUTATIONS` | `false` | Enables mutating MCP tools |
 | `MCP_DASHBOARD_ALLOW_DESTRUCTIVE` | `false` | Enables destructive MCP tools (in addition to mutations) |
+| `MCP_TRANSPORT` | `stdio` | MCP transport mode: `stdio`, `http`, `repl` |
+| `MCP_HTTP_PORT` | `8819` | Port for the MCP HTTP+SSE server (only when `MCP_TRANSPORT=http`) |
+| `MCP_HTTP_HOST` | `127.0.0.1` | Bind address for the MCP HTTP server |
 
 Example with custom port:
 
@@ -106,12 +109,27 @@ DASHBOARD_PORT=9000 npm run dev
 
 ### MCP server (optional)
 
-The project includes a local MCP server under `mcp/` so AI agents can call dashboard operations through standardized tools.
+The project includes a local MCP server under `mcp/` so AI agents can call dashboard operations through standardized tools. It supports three transport modes: stdio for MCP host integration, HTTP+SSE for networked clients, and an interactive REPL for operator debugging.
 
 ```mermaid
 graph LR
-  HOST["MCP Host"] --> MCP["Local MCP Server<br/>npm run mcp:start"]
-  MCP --> API["Dashboard API<br/>http://127.0.0.1:4820/api/*"]
+    subgraph "MCP Transport Modes"
+        STDIO["stdio\n(default)"]
+        HTTP["HTTP + SSE\n(:8819)"]
+        REPL["Interactive REPL"]
+    end
+
+    HOST["MCP Host"] -->|"stdin/stdout"| STDIO
+    RC["Remote Client"] -->|"POST /mcp · GET /sse"| HTTP
+    OP["Operator"] -->|"interactive CLI"| REPL
+
+    STDIO --> API["Dashboard API<br/>http://127.0.0.1:4820/api/*"]
+    HTTP --> API
+    REPL --> API
+
+    style STDIO fill:#6366f1,stroke:#818cf8,color:#fff
+    style HTTP fill:#f59e0b,stroke:#fbbf24,color:#000
+    style REPL fill:#a855f7,stroke:#c084fc,color:#fff
 ```
 
 Quick start:
@@ -119,7 +137,9 @@ Quick start:
 ```bash
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start
+npm run mcp:start              # stdio (for Claude Code / Claude Desktop)
+npm run mcp:start:http         # HTTP + SSE server on port 8819
+npm run mcp:start:repl         # interactive CLI with tab completion
 ```
 
 For full host config and tool catalog, see [mcp/README.md](./mcp/README.md).
@@ -191,8 +211,12 @@ npm run seed
 | `import-history` | `npm run import-history` | Import legacy sessions from `~/.claude/` (also runs on startup) |
 | `mcp:install` | `npm run mcp:install` | Install MCP package dependencies |
 | `mcp:build` | `npm run mcp:build` | Build MCP server into `mcp/build/` |
-| `mcp:start` | `npm run mcp:start` | Start compiled MCP server |
-| `mcp:dev` | `npm run mcp:dev` | Start MCP server in dev mode |
+| `mcp:start` | `npm run mcp:start` | Start MCP server (stdio, for MCP hosts) |
+| `mcp:start:http` | `npm run mcp:start:http` | Start MCP HTTP+SSE server on port 8819 |
+| `mcp:start:repl` | `npm run mcp:start:repl` | Start interactive MCP REPL |
+| `mcp:dev` | `npm run mcp:dev` | Start MCP server in dev mode (stdio) |
+| `mcp:dev:http` | `npm run mcp:dev:http` | Start MCP HTTP server in dev mode |
+| `mcp:dev:repl` | `npm run mcp:dev:repl` | Start MCP REPL in dev mode |
 | `mcp:typecheck` | `npm run mcp:typecheck` | Type-check MCP source |
 | `mcp:docker:build` | `npm run mcp:docker:build` | Build MCP container image with Docker |
 | `mcp:podman:build` | `npm run mcp:podman:build` | Build MCP container image with Podman |

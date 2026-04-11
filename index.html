@@ -3200,10 +3200,16 @@ docker run -d --name agent-monitor \
             </table>
           </div>
 
-          <div class="callout callout-warn">
-            <strong>Hook note:</strong> Claude Code hooks run on the host, not inside the container.
-            The containerized server receives hook events via HTTP on <code>localhost:4820</code>.
-            Run <code>npm run install-hooks</code> on the host after starting the container.
+          <div class="callout callout-warning">
+            <div class="callout-icon">⚠</div>
+            <div class="callout-body">
+              <strong>Hook note</strong>
+              <p>
+                Claude Code hooks run on the host, not inside the container. The containerized server
+                receives hook events via HTTP on <code>localhost:4820</code>. Run
+                <code>npm run install-hooks</code> on the host after starting the container.
+              </p>
+            </div>
           </div>
         </section>
 

@@ -317,6 +317,9 @@ sequenceDiagram
     Note over WS,UI: ~0ms latency,<br/>no polling
 ```
 
+> [!IMPORTANT]
+> See [ARCHITECTURE.md](./ARCHITECTURE.md) for a deep dive into the server architecture, database schema, API routes, WebSocket design, client routing, hook handler flow, deployment modes, and detailed lifecycle diagrams for sessions and agents.
+
 ### Hook Lifecycle
 
 1. **Claude Code** fires a hook on session start, tool use, turn end, subagent completion, and session exit
@@ -334,7 +337,7 @@ sequenceDiagram
    - Extracts API errors (`isApiErrorMessage` entries: quota limits, rate limits, invalid_request) and raw `type: "error"` responses from JSONL transcripts, stored as `APIError` events. Turn durations (`system` subtype `turn_duration`) are stored as `TurnDuration` events. Tool result errors (`toolUseResult.is_error`) are tracked as `ToolError` events
    - A periodic server sweep (every 2 min) catches abandoned sessions and new compactions that slipped past event-based detection (e.g., `/compact` fires no hook, `/resume` within seconds of session creation). The sweep shares the transcript cache with the hook handler, avoiding duplicate I/O. Abandoned session cleanup also evicts the transcript cache entry to bound memory
 4. **WebSocket** broadcasts the change to all connected clients
-5. **UI** receives the update and re-renders the affected components
+5. **UI** receives the update and re-renders the affected components in real-time with no polling.
 
 ### Agent State Machine
 
@@ -778,7 +781,7 @@ The dashboard supports native browser notifications for real-time alerts when yo
 
 Additionally, any `Notification` hook event from Claude Code triggers a browser notification regardless of the per-event toggles (as long as the master toggle is enabled).
 
-### Architecture
+### Notifications Architecture
 
 - **Preferences** are stored in `localStorage` under the key `agent-monitor-notifications`
 - **`useNotifications` hook** subscribes to the WebSocket event bus at the app root level (`App.tsx`) and fires `new Notification()` calls based on the saved preferences

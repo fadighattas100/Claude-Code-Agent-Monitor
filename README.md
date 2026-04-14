@@ -4,7 +4,8 @@
 
 A professional dashboard to track and visualize your Claude Code agent sessions, tool usage, and subagent orchestration in real-time. Built with Node.js, Express, React, and SQLite, it integrates directly with Claude Code via its native hook system for seamless session tracking and analytics.
 
-![Claude Code](https://img.shields.io/badge/Claude_Code-1.0-orange?style=flat-square&logo=claude&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-orange?style=flat-square&logo=claude&logoColor=white)
+![Claude Code Plugins](https://img.shields.io/badge/Claude_Code-Plugins_&_Skills-orange?style=flat-square&logo=anthropic&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=white)
@@ -15,12 +16,15 @@ A professional dashboard to track and visualize your Claude Code agent sessions,
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![WebSocket](https://img.shields.io/badge/WebSocket-RFC_6455-010101?style=flat-square&logo=socketdotio&logoColor=white)
 ![Model Context Protocol](https://img.shields.io/badge/Model_Context_Protocol-1.0-0f766e?style=flat-square&logo=modelcontextprotocol&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-000000?style=flat-square&logo=openapiinitiative&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-3.0-85EA2D?style=flat-square&logo=swagger&logoColor=white)
 ![better--sqlite3](https://img.shields.io/badge/better--sqlite3-11.7-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![React Router](https://img.shields.io/badge/React_Router-6.28-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
 ![Lucide](https://img.shields.io/badge/Lucide_Icons-0.474-F56565?style=flat-square&logo=lucide&logoColor=white)
 ![D3.js](https://img.shields.io/badge/D3.js-7-F9A03C?style=flat-square&logo=d3dotjs&logoColor=white)
 ![PostCSS](https://img.shields.io/badge/PostCSS-8.5-DD3A0A?style=flat-square&logo=postcss&logoColor=white)
 ![Autoprefixer](https://img.shields.io/badge/Autoprefixer-10.4-DD3735?style=flat-square&logo=autoprefixer&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-8.44-4B32C3?style=flat-square&logo=eslint&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.6-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-20.10-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![Podman](https://img.shields.io/badge/Podman-4.0-CC342D?style=flat-square&logo=podman&logoColor=white)
@@ -87,6 +91,16 @@ graph LR
     style C fill:#1a1a28,stroke:#2a2a3d,color:#e4e4ed
     style D fill:#10b981,stroke:#34d399,color:#fff
 ```
+
+In addition to the real-time monitoring dashboard, it also includes a local MCP server implementation in `mcp/` that exposes a catalog of tools for introspecting and managing the dashboard itself, making it easy to integrate dashboard operations directly into your Claude Code workflows. There is also an agent extension layer, which provides Claude Code plugins, skills, and subagents for dashboard interaction, analytics, and workflow intelligence.
+
+<a href="https://www.star-history.com/?repos=hoangsonww%2FClaude-Code-Agent-Monitor&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=hoangsonww/Claude-Code-Agent-Monitor&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=hoangsonww/Claude-Code-Agent-Monitor&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=hoangsonww/Claude-Code-Agent-Monitor&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ### User Interface
 
@@ -306,6 +320,9 @@ sequenceDiagram
     Note over WS,UI: ~0ms latency,<br/>no polling
 ```
 
+> [!IMPORTANT]
+> See [ARCHITECTURE.md](./ARCHITECTURE.md) for a deep dive into the server architecture, database schema, API routes, WebSocket design, client routing, hook handler flow, deployment modes, and detailed lifecycle diagrams for sessions and agents.
+
 ### Hook Lifecycle
 
 1. **Claude Code** fires a hook on session start, tool use, turn end, subagent completion, and session exit
@@ -323,7 +340,7 @@ sequenceDiagram
    - Extracts API errors (`isApiErrorMessage` entries: quota limits, rate limits, invalid_request) and raw `type: "error"` responses from JSONL transcripts, stored as `APIError` events. Turn durations (`system` subtype `turn_duration`) are stored as `TurnDuration` events. Tool result errors (`toolUseResult.is_error`) are tracked as `ToolError` events
    - A periodic server sweep (every 2 min) catches abandoned sessions and new compactions that slipped past event-based detection (e.g., `/compact` fires no hook, `/resume` within seconds of session creation). The sweep shares the transcript cache with the hook handler, avoiding duplicate I/O. Abandoned session cleanup also evicts the transcript cache entry to bound memory
 4. **WebSocket** broadcasts the change to all connected clients
-5. **UI** receives the update and re-renders the affected components
+5. **UI** receives the update and re-renders the affected components in real-time with no polling.
 
 ### Agent State Machine
 
@@ -618,6 +635,19 @@ Full details: [mcp/README.md](./mcp/README.md)
 
 All endpoints return JSON. Error responses follow the shape `{ error: { code, message } }`.
 
+### OpenAPI / Swagger
+
+| Method | Path                | Description                         |
+| ------ | ------------------- | ----------------------------------- |
+| `GET`  | `/api/openapi.json` | Raw OpenAPI 3.0 spec                |
+| `GET`  | `/api/docs`         | Interactive Swagger UI documentation |
+
+The OpenAPI document is generated from `server/openapi.js`, and Swagger UI is served directly by the backend.
+
+<p align="center">
+  <img src="images/swagger.png" alt="Swagger UI" width="100%">
+</p>
+
 ### Health
 
 | Method | Path          | Description                           |
@@ -653,6 +683,12 @@ All endpoints return JSON. Error responses follow the shape `{ error: { code, me
 | Method | Path         | Description                                            |
 | ------ | ------------ | ------------------------------------------------------ |
 | `GET`  | `/api/stats` | Aggregate counts, status distributions, WS connections |
+
+### Analytics
+
+| Method | Path             | Description                                                |
+| ------ | ---------------- | ---------------------------------------------------------- |
+| `GET`  | `/api/analytics` | Token/tool/session aggregates for charts and trend views   |
 
 ### Hooks
 
@@ -696,6 +732,7 @@ All endpoints return JSON. Error responses follow the shape `{ error: { code, me
 | ------ | ------------------------------ | ------------------------------------------------ |
 | `GET`  | `/api/settings/info`           | System info, DB stats, hook status               |
 | `POST` | `/api/settings/clear-data`     | Delete all sessions, agents, events, token usage |
+| `POST` | `/api/settings/reimport`       | Re-import legacy sessions from `~/.claude/`      |
 | `POST` | `/api/settings/reinstall-hooks`| Reinstall Claude Code hooks                      |
 | `POST` | `/api/settings/reset-pricing`  | Reset pricing to defaults                        |
 | `GET`  | `/api/settings/export`         | Export all data as JSON download                 |
@@ -767,7 +804,7 @@ The dashboard supports native browser notifications for real-time alerts when yo
 
 Additionally, any `Notification` hook event from Claude Code triggers a browser notification regardless of the per-event toggles (as long as the master toggle is enabled).
 
-### Architecture
+### Notifications Architecture
 
 - **Preferences** are stored in `localStorage` under the key `agent-monitor-notifications`
 - **`useNotifications` hook** subscribes to the WebSocket event bus at the app root level (`App.tsx`) and fires `new Notification()` calls based on the saved preferences

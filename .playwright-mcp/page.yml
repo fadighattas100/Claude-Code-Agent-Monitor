@@ -49,7 +49,6 @@ pages:
       - Events Today
       - Total Events
       - Total Cost
-      - Active Agents
       - Recent Activity
     empty_states:
       - No active agents

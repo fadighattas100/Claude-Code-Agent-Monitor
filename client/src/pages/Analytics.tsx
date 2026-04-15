@@ -282,9 +282,9 @@ function CostTrendLine({
   });
 
   const linePoints = points.map((p) => `${p.x},${p.y}`).join(" ");
-  const first = points[0];
-  const last = points[points.length - 1];
-  const areaPoints = `${first.x},${height - padY} ${linePoints} ${last.x},${height - padY}`;
+  const firstX = points[0]?.x ?? padX;
+  const lastX = points[points.length - 1]?.x ?? padX;
+  const areaPoints = `${firstX},${height - padY} ${linePoints} ${lastX},${height - padY}`;
 
   return (
     <div className="relative">

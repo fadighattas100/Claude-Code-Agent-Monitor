@@ -48,6 +48,7 @@ Architectural overview and technical reference for the Agent Dashboard system, c
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-pipelines-FC6D26?style=flat-square&logo=gitlab&logoColor=white)
 ![Make](https://img.shields.io/badge/Make-4.3-000000?style=flat-square&logo=make&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-pipelines-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=flat-square&logo=vscodium&logoColor=white)
 ![MIT License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 ---
@@ -68,6 +69,7 @@ Architectural overview and technical reference for the Agent Dashboard system, c
 - [MCP Integration](#mcp-integration)
 - [State Management](#state-management)
 - [Browser Notification System](#browser-notification-system)
+- [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Security Considerations](#security-considerations)
 - [Performance Characteristics](#performance-characteristics)
 - [Deployment Modes](#deployment-modes)
@@ -1239,6 +1241,64 @@ Notification preferences remain in `localStorage` (`agent-monitor-notifications`
 | Session Error | `onSessionError` | Filtered during push fan-out |
 | Session Complete | `onSessionComplete` | Filtered during push fan-out |
 | Subagent Spawn | `onSubagentSpawn` | Filtered during push fan-out |
+
+---
+
+## VS Code Extension Architecture
+
+The **Claude Code Agent Monitor** VS Code extension provides an integrated monitoring experience directly within the editor. It communicates with the local dashboard server via standard HTTP APIs and renders the dashboard UI in a webview.
+
+<p align="center">
+  <img src="vscode-extension/vscode.png" alt="VS Code Extension Screenshot" width="100%">
+</p>
+
+### Extension Components
+
+| Component | Responsibility |
+| --- | --- |
+| **Extension Host** (`extension.js`) | Manages the extension lifecycle, registers commands, creates the status bar item, and coordinates the webview panel. |
+| **Sidebar Provider** (`sidebar.js`) | Implements the `TreeDataProvider` for the Activity Bar. It performs background polling of the dashboard APIs (`/api/stats`, `/api/analytics`, `/api/sessions`) every 5 seconds. |
+| **Status Bar Item** | Provides a persistent "Pulse" indicator in the VS Code status bar, showing active session and agent counts. |
+| **Webview Panel** | A native VS Code tab that renders the dashboard React application. It supports deep linking to specific sessions or sub-pages. |
+
+### Data Flow
+
+```mermaid
+graph TD
+    subgraph "VS Code Process"
+        SB[Status Bar]
+        SIDE[Sidebar TreeView]
+        WV[Webview Panel]
+    end
+
+    subgraph "Extension Host"
+        EH[extension.js]
+        SP[sidebar.js]
+    end
+
+    subgraph "Dashboard Server (localhost)"
+        API["/api/stats<br/>/api/analytics<br/>/api/sessions"]
+        DS[Express Server]
+    end
+
+    SIDE -->|Poll 5s| SP
+    SP -->|HTTP GET| API
+    EH -->|HTTP GET| API
+    SB -->|Pulse| EH
+    WV -->|Iframe src| DS
+```
+
+### Key Implementation Details
+
+1. **Auto-Detection**: The extension checks both port `5173` (Vite dev server) and `4820` (Production server) on `localhost`. It prioritizes the production port for API data but can render the UI from either.
+2. **Real-time Status**: The `SidebarProvider` uses a background loop with `onDidChangeTreeData` to automatically toggle between **Online** and **Offline** states as the local server starts or stops.
+3. **Deep Linking**: Commands like `claude-code-agent-monitor.openDashboard` accept arguments (e.g., a session ID or page path like `analytics`) to route the webview to specific views within the React SPA.
+4. **Theme Awareness**: The Activity Bar icon (`icon.svg` or `apple-touch-icon.png`) and sidebar icons use VS Code's `ThemeIcon` and `ThemeColor` to ensure they adapt to Light, Dark, and High Contrast themes.
+
+For the extension source code, refer to the [vscode-extension/](./vscode-extension/) directory.
+
+> [!TIP]
+> Extension on VS Code Marketplace: [Claude Code Agent Monitor](https://marketplace.visualstudio.com/items?itemName=hoangsonw.claude-code-agent-monitor)
 
 ---
 

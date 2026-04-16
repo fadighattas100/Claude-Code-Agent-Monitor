@@ -50,6 +50,7 @@
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-pipelines-FC6D26?style=flat-square&logo=gitlab&logoColor=white)
 ![Make](https://img.shields.io/badge/Make-4.3-000000?style=flat-square&logo=make&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-pipelines-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=flat-square&logo=vscodium&logoColor=white)
 ![MIT License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 **语言支持 / Language Support**: English (`en`) · 中文 (`zh`) · 越南语 (`vi`)  
@@ -73,6 +74,7 @@
 - [API 参考](#api-参考)
 - [Hook 事件](#hook-事件)
 - [浏览器通知](#浏览器通知)
+- [VS Code 扩展](#vs-code-扩展)
 - [数据存储](#数据存储)
 - [状态栏](#状态栏)
 - [服务端架构](#服务端架构)
@@ -836,6 +838,34 @@ Dashboard 支持通过 Web Push (VAPID) 实现持久化浏览器通知。即使 
 
 ---
 
+## VS Code 扩展
+
+**Claude Code Agent Monitor** 现已作为官方 VS Code 扩展提供，让你无需离开编辑器即可监控 AI Agent。
+
+<p align="center">
+  <img src="vscode-extension/vscode.png" alt="VS Code Extension Screenshot" width="100%">
+</p>
+
+### 🚀 核心功能
+- **实时侧边栏**：专用的 Activity Bar 视图，实时显示 Agent 状态（工作、已连接、空闲等）。
+- **使用分析**：直接在侧边栏追踪总 Token 消耗、实时美元成本和事件计数。
+- **状态栏集成**：底部状态栏显示活跃会话和 Agent 的实时脉搏。
+- **深度导航**：一键访问特定的 Dashboard 页面（看板、分析、设置）或近期会话。
+- **集成标签页**：作为原生 VS Code Webview 标签页打开完整的监控面板。
+
+### 📦 安装与设置
+1. 打开 [vscode-extension](./vscode-extension) 目录。
+2. 从 Marketplace 安装或使用 `vsce package` 自行打包安装。
+3. 确保本地 Dashboard 服务器正在运行（`npm run dev`）。
+4. 点击 VS Code Activity Bar 中的 **雷达图标** 即可开始使用。
+
+有关详细的开发人员配置，请参阅 [.vscode](./.vscode) 和 [vscode-extension](./vscode-extension) 目录。
+
+> [!TIP]
+> Extension on VS Code Marketplace: [Claude Code Agent Monitor](https://marketplace.visualstudio.com/items?itemName=hoangsonw.claude-code-agent-monitor)
+
+---
+
 ## 数据存储
 
 - **引擎：** SQLite 3，通过 `better-sqlite3`（可选）或 Node.js 内置 `node:sqlite`
@@ -847,11 +877,11 @@ Dashboard 支持通过 Web Push (VAPID) 实现持久化浏览器通知。即使 
 
 ```mermaid
 erDiagram
-    sessions ||--o{ agents : 拥有
-    sessions ||--o{ events : 拥有
-    sessions ||--o{ token_usage : 追踪
-    agents ||--o{ events : 生成
-    agents ||--o{ agents : 生成
+    sessions ||--o{ agents : owns
+    sessions ||--o{ events : owns
+    sessions ||--o{ token_usage : tracks
+    agents ||--o{ events : generates
+    agents ||--o{ agents : spawns
 
     sessions {
         TEXT id PK "UUID"

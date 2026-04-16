@@ -162,6 +162,27 @@ This repository ships extension files for both agent ecosystems:
 
 See [`.codex/README.md`](./.codex/README.md) for Codex extension details.
 
+### VS Code extension setup
+
+The **Claude Code Agent Monitor** is available as an integrated VS Code extension for seamless monitoring within your editor.
+
+- **Activity Bar View**: Adds a custom "Radar" icon to the activity bar providing real-time agent health, token counts, and session stats.
+- **Status Bar Integration**: Displays live session and agent pulse counts in the bottom bar.
+- **Embedded Dashboard**: Renders the full web dashboard directly in a VS Code editor tab.
+- **Automated Detection**: Automatically finds your dashboard server on ports `5173` or `4820`.
+
+<p align="center">
+  <img src="vscode-extension/vscode.png" alt="VS Code Extension Screenshot" width="100%">
+</p>
+
+To install or develop the extension:
+1. Open the [vscode-extension](./vscode-extension) directory in VS Code.
+2. Run `npm install` and `npm run package` to generate a local `.vsix` installer.
+3. For developer details, see [vscode-extension/README.md](./vscode-extension/README.md).
+
+> [!TIP]
+> Extension on VS Code Marketplace: [Claude Code Agent Monitor](https://marketplace.visualstudio.com/items?itemName=hoangsonw.claude-code-agent-monitor)
+
 ---
 
 ## Database

@@ -4,7 +4,9 @@
  */
 
 const { Router } = require("express");
-const { stmts } = require("../db");
+const { stmts, db } = require("../db");
+
+const { calculateCost } = require("./pricing");
 
 const router = Router();
 
@@ -21,6 +23,16 @@ router.get("/", (_req, res) => {
   const eventTypes = stmts.eventTypeCounts.all();
   const avgEvents = stmts.avgEventsPerSession.get();
 
+  // Calculate total cost across all sessions
+  const pricingRules = stmts.listPricing.all();
+  const allTokenUsage = db.prepare("SELECT * FROM token_usage").all();
+
+  let totalCost = 0;
+  for (const usage of allTokenUsage) {
+    const { total_cost } = calculateCost([usage], pricingRules);
+    totalCost += total_cost;
+  }
+
   res.json({
     tokens: {
       total_input: tokenTotals?.total_input ?? 0,
@@ -28,6 +40,7 @@ router.get("/", (_req, res) => {
       total_cache_read: tokenTotals?.total_cache_read ?? 0,
       total_cache_write: tokenTotals?.total_cache_write ?? 0,
     },
+    total_cost: totalCost,
     tool_usage: toolUsage,
     daily_events: dailyEvents,
     daily_sessions: dailySessions,

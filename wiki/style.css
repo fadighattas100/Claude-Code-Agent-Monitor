@@ -321,7 +321,7 @@ body {
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee-scroll 40s linear infinite;
+  animation: marquee-scroll 80s linear infinite;
 }
 
 .marquee-track:hover {
@@ -458,6 +458,116 @@ body {
   background: rgba(255, 207, 0, 0.12);
   border-color: rgba(255, 207, 0, 0.3);
   color: #ffd54f;
+}
+.badge-js {
+  background: rgba(247, 223, 30, 0.12);
+  border-color: rgba(247, 223, 30, 0.3);
+  color: #f7df1e;
+}
+.badge-openapi {
+  background: rgba(133, 234, 45, 0.12);
+  border-color: rgba(133, 234, 45, 0.3);
+  color: #85ea2d;
+}
+.badge-swagger {
+  background: rgba(133, 234, 45, 0.12);
+  border-color: rgba(133, 234, 45, 0.3);
+  color: #85ea2d;
+}
+.badge-i18n {
+  background: rgba(122, 66, 255, 0.12);
+  border-color: rgba(122, 66, 255, 0.3);
+  color: #7a42ff;
+}
+.badge-mermaid {
+  background: rgba(255, 51, 51, 0.12);
+  border-color: rgba(255, 51, 51, 0.3);
+  color: #ff3333;
+}
+.badge-eslint {
+  background: rgba(75, 50, 195, 0.12);
+  border-color: rgba(75, 50, 195, 0.3);
+  color: #8c7ae6;
+}
+.badge-terraform {
+  background: rgba(132, 79, 186, 0.12);
+  border-color: rgba(132, 79, 186, 0.3);
+  color: #844fba;
+}
+.badge-k8s {
+  background: rgba(50, 108, 229, 0.12);
+  border-color: rgba(50, 108, 229, 0.3);
+  color: #326ce5;
+}
+.badge-prometheus {
+  background: rgba(230, 82, 44, 0.12);
+  border-color: rgba(230, 82, 44, 0.3);
+  color: #e6522c;
+}
+.badge-grafana {
+  background: rgba(244, 104, 0, 0.12);
+  border-color: rgba(244, 104, 0, 0.3);
+  color: #f46800;
+}
+.badge-nginx {
+  background: rgba(0, 150, 57, 0.12);
+  border-color: rgba(0, 150, 57, 0.3);
+  color: #009639;
+}
+.badge-coralogix {
+  background: rgba(26, 26, 46, 0.12);
+  border-color: rgba(26, 26, 46, 0.3);
+  color: #e2e2f0;
+}
+.badge-otel {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.3);
+  color: #4f46e5;
+}
+.badge-aws {
+  background: rgba(35, 47, 62, 0.12);
+  border-color: rgba(35, 47, 62, 0.3);
+  color: #ff9900;
+}
+.badge-gcp {
+  background: rgba(66, 133, 244, 0.12);
+  border-color: rgba(66, 133, 244, 0.3);
+  color: #4285f4;
+}
+.badge-azure {
+  background: rgba(0, 120, 212, 0.12);
+  border-color: rgba(0, 120, 212, 0.3);
+  color: #0078d4;
+}
+.badge-oracle {
+  background: rgba(248, 0, 0, 0.12);
+  border-color: rgba(248, 0, 0, 0.3);
+  color: #f80000;
+}
+.badge-gitlab {
+  background: rgba(252, 109, 38, 0.12);
+  border-color: rgba(252, 109, 38, 0.3);
+  color: #fc6d26;
+}
+.badge-make {
+  background: rgba(200, 200, 200, 0.12);
+  border-color: rgba(200, 200, 200, 0.3);
+  color: #fff;
+}
+.badge-github {
+  background: rgba(32, 136, 255, 0.12);
+  border-color: rgba(32, 136, 255, 0.3);
+  color: #2088ff;
+}
+.badge-vscode {
+  background: rgba(0, 122, 204, 0.12);
+  border-color: rgba(0, 122, 204, 0.3);
+  color: #007acc;
+}
+.badge-claude {
+  background: rgba(255, 165, 0, 0.12);
+  border-color: rgba(255, 165, 0, 0.3);
+  color: #ffa500;
 }
 
 /* ─── Quick Start Cards ─────────────────────────────────────────────────── */

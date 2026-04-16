@@ -50,6 +50,7 @@ A professional dashboard to track and visualize your Claude Code agent sessions,
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-pipelines-FC6D26?style=flat-square&logo=gitlab&logoColor=white)
 ![Make](https://img.shields.io/badge/Make-4.3-000000?style=flat-square&logo=make&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-pipelines-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=flat-square&logo=vscodium&logoColor=white)
 ![MIT License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 > [!TIP]
@@ -72,6 +73,7 @@ A professional dashboard to track and visualize your Claude Code agent sessions,
 - [API Reference](#api-reference)
 - [Hook Events](#hook-events)
 - [Browser Notifications](#browser-notifications)
+- [VS Code Extension](#vs-code-extension)
 - [Data Storage](#data-storage)
 - [Statusline](#statusline)
 - [Server Architecture](#server-architecture)
@@ -834,6 +836,34 @@ Additionally, any `Notification` hook event from Claude Code triggers a browser 
 - **Subscriptions:** Browser-specific endpoints are stored in the `push_subscriptions` table in SQLite.
 - **Persistence:** Notifications arrive even if the browser is closed, as the Service Worker operates in the background.
 - **Test notification:** button in Settings lets you verify the VAPID pipeline and audio playback.
+
+---
+
+## VS Code Extension
+
+The **Claude Code Agent Monitor** is available as a first-class VS Code extension, allowing you to monitor your AI agents without leaving your editor.
+
+<p align="center">
+  <img src="vscode-extension/vscode.png" alt="VS Code Extension Screenshot" width="100%">
+</p>
+
+### 🚀 Key Features
+- **Live Sidebar**: Dedicated Activity Bar view showing real-time Agent Health (Working, Connected, Idle, etc.).
+- **Usage Analytics**: Track total tokens, live USD costs, and event counts directly in the sidebar.
+- **Status Bar Integration**: Quick-glance pulse monitor in the bottom bar showing active sessions and agents.
+- **Deep Navigation**: One-click access to specific dashboard views (Kanban, Analytics, Settings) or recent sessions.
+- **Integrated Tab**: Opens the full monitoring dashboard as a native VS Code webview tab.
+
+### 📦 Installation & Setup
+1. Open the [vscode-extension](./vscode-extension) directory.
+2. Install the Marketplace extension or package it yourself using `vsce package`.
+3. Ensure your local dashboard server is running (`npm run dev`).
+4. Click the **Radar icon** in the VS Code Activity Bar to get started.
+
+For detailed developer configuration, see the [.vscode](./.vscode) and [vscode-extension](./vscode-extension) directories.
+
+> [!TIP]
+> Extension on VS Code Marketplace: [Claude Code Agent Monitor](https://marketplace.visualstudio.com/items?itemName=hoangsonw.claude-code-agent-monitor)
 
 ---
 

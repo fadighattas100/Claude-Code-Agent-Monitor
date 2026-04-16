@@ -160,6 +160,39 @@ See [`.codex/README.md`](./.codex/README.md) for Codex extension details.
 
 ---
 
+## Optional: VS Code extension
+
+The **Claude Code Agent Monitor** is also available as a dedicated VS Code extension for seamless, integrated monitoring.
+
+<p align="center">
+  <img src="vscode-extension/vscode.png" alt="VS Code Extension Screenshot" width="100%">
+</p>
+
+### Features
+- **Real-time Sidebar**: Monitor agent status, health, and usage stats in the Activity Bar.
+- **Pulse Status Bar**: High-level session and agent counts in the bottom status bar.
+- **Direct Navigation**: Jump to specific dashboard pages or recent sessions.
+- **Embedded Dashboard**: Full dashboard interface within a native VS Code tab.
+
+### Installation
+1. Open the [vscode-extension](./vscode-extension) folder in VS Code.
+2. Install via the Marketplace or package it manually:
+   ```bash
+   cd vscode-extension
+   npm install
+   # Generate .vsix for local install
+   npm run package
+   ```
+3. After installation, ensure the main dashboard server is running (`npm run dev`).
+4. Look for the **Radar icon** in your VS Code Activity Bar.
+
+For advanced configuration, refer to the [.vscode](./.vscode) and [vscode-extension](./vscode-extension) directories.
+
+> [!TIP]
+> Extension on VS Code Marketplace: [Claude Code Agent Monitor](https://marketplace.visualstudio.com/items?itemName=hoangsonw.claude-code-agent-monitor)
+
+---
+
 ## Container mode (Docker / Podman)
 
 The repository includes both a multi-stage `Dockerfile` and a `docker-compose.yml` file. Docker and Podman are both supported.

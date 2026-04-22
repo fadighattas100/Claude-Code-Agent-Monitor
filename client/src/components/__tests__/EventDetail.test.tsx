@@ -82,10 +82,10 @@ describe("EventDetail", () => {
     expect(screen.getAllByText("agent-abc")).toHaveLength(1);
   });
 
-  it("falls back to a raw `data` row when JSON parsing fails", () => {
+  it("falls back to a raw-payload row when JSON parsing fails", () => {
     const event = { ...baseEvent, data: "not-json-at-all" };
     render(<EventDetail event={event} />);
-    expect(screen.getByText("data")).toBeInTheDocument();
+    expect(screen.getByText(/raw payload/i)).toBeInTheDocument();
     expect(screen.getByText(/not-json-at-all/)).toBeInTheDocument();
   });
 

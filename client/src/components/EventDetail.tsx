@@ -8,7 +8,7 @@
  * lead the list so the user gets consistent structure across every event type.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Copy, Check } from "lucide-react";
 import type { DashboardEvent } from "../lib/types";
@@ -18,13 +18,16 @@ type EventDetailProps = {
 };
 
 // Keys from the payload that are already rendered from event-level fields —
-// skip them to avoid showing the same value twice.
-const DUPLICATE_KEYS = new Set(["session_id", "agent_id"]);
+// skip them to avoid showing the same value twice. Includes `id` and
+// `event_id` defensively in case a future hook payload surfaces them.
+const DUPLICATE_KEYS = new Set(["id", "event_id", "session_id", "agent_id"]);
+
+type Row = { key: string; label: string; value: unknown };
 
 export function EventDetail({ event }: EventDetailProps) {
   const { t } = useTranslation("common");
 
-  const parsed: Record<string, unknown> | null = (() => {
+  const parsed = useMemo<Record<string, unknown> | null>(() => {
     if (!event.data) return null;
     try {
       const v = JSON.parse(event.data);
@@ -34,28 +37,32 @@ export function EventDetail({ event }: EventDetailProps) {
     } catch {
       return null;
     }
-  })();
+  }, [event.data]);
 
-  const payloadEntries: Array<[string, unknown]> = parsed
-    ? Object.entries(parsed).filter(([k]) => !DUPLICATE_KEYS.has(k))
-    : [];
+  const rows = useMemo<Row[]>(() => {
+    const result: Row[] = [
+      { key: "event_id", label: t("eventDetail.eventId"), value: event.id },
+      { key: "session_id", label: t("eventDetail.sessionId"), value: event.session_id },
+    ];
+    if (event.agent_id) {
+      result.push({ key: "agent_id", label: t("eventDetail.agentId"), value: event.agent_id });
+    }
 
-  type Row = { key: string; label: string; value: unknown };
-  const rows: Row[] = [
-    { key: "event_id", label: t("eventDetail.eventId"), value: event.id },
-    { key: "session_id", label: t("eventDetail.sessionId"), value: event.session_id },
-  ];
-  if (event.agent_id) {
-    rows.push({ key: "agent_id", label: t("eventDetail.agentId"), value: event.agent_id });
-  }
-  for (const [k, v] of payloadEntries) {
-    rows.push({ key: k, label: k, value: v });
-  }
+    const payloadEntries: Array<[string, unknown]> = parsed
+      ? Object.entries(parsed).filter(([k]) => !DUPLICATE_KEYS.has(k))
+      : [];
+    for (const [k, v] of payloadEntries) {
+      result.push({ key: k, label: k, value: v });
+    }
 
-  // If JSON parse failed, show the raw data as a single row.
-  if (!parsed && event.data) {
-    rows.push({ key: "data", label: "data", value: event.data });
-  }
+    // If JSON parse failed, show the raw data as a single row using the
+    // localized raw-payload label rather than a hardcoded "data" string.
+    if (!parsed && event.data) {
+      result.push({ key: "data", label: t("eventDetail.rawPayload"), value: event.data });
+    }
+
+    return result;
+  }, [event.id, event.session_id, event.agent_id, event.data, parsed, t]);
 
   return (
     <div className="bg-surface-2/60 border-t border-border px-5 py-4 animate-slide-up space-y-2">

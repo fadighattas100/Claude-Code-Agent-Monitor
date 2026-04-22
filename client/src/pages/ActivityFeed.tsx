@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Activity, Pause, Play, RefreshCw, ChevronRight } from "lucide-react";
 import { api } from "../lib/api";
@@ -19,7 +19,6 @@ import type { DashboardEvent, AgentStatus } from "../lib/types";
 const PAGE_SIZE = 10;
 
 export function ActivityFeed() {
-  const navigate = useNavigate();
   const { t } = useTranslation("activity");
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [paused, setPaused] = useState(false);
@@ -137,14 +136,10 @@ export function ActivityFeed() {
                 const isOpen = event.id != null && expandedEvents.has(event.id);
                 return (
                   <div key={event.id ?? i} className="animate-slide-up">
-                    <div
-                      onClick={() => navigate(`/sessions/${event.session_id}`)}
-                      className="px-5 py-3.5 flex items-center gap-4 hover:bg-surface-4 transition-colors cursor-pointer"
-                    >
+                    <div className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           if (event.id != null) toggleEvent(event.id);
                         }}
                         aria-expanded={isOpen}
@@ -160,27 +155,32 @@ export function ActivityFeed() {
                         />
                       </button>
 
-                      <div className="w-14 text-[11px] text-gray-500 font-mono flex-shrink-0 text-right">
-                        {formatTime(event.created_at)}
-                      </div>
+                      <Link
+                        to={`/sessions/${event.session_id}`}
+                        className="flex-1 flex items-center gap-4 min-w-0 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
+                      >
+                        <div className="w-14 text-[11px] text-gray-500 font-mono flex-shrink-0 text-right">
+                          {formatTime(event.created_at)}
+                        </div>
 
-                      <AgentStatusBadge status={statusFromEventType(event.event_type)} />
+                        <AgentStatusBadge status={statusFromEventType(event.event_type)} />
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-300 truncate">
-                          {event.summary || event.event_type}
-                        </p>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-300 truncate">
+                            {event.summary || event.event_type}
+                          </p>
+                        </div>
 
-                      {event.tool_name && (
-                        <span className="text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
-                          {event.tool_name}
+                        {event.tool_name && (
+                          <span className="text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
+                            {event.tool_name}
+                          </span>
+                        )}
+
+                        <span className="text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
+                          {timeAgo(event.created_at)}
                         </span>
-                      )}
-
-                      <span className="text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
-                        {timeAgo(event.created_at)}
-                      </span>
+                      </Link>
                     </div>
                     {isOpen && <EventDetail event={event} />}
                   </div>

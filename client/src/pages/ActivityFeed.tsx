@@ -7,7 +7,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Activity, Pause, Play, RefreshCw, ChevronRight } from "lucide-react";
+import { Activity, Pause, Play, RefreshCw, ChevronRight, ExternalLink } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -136,50 +136,55 @@ export function ActivityFeed() {
                 const isOpen = event.id != null && expandedEvents.has(event.id);
                 return (
                   <div key={event.id ?? i} className="animate-slide-up">
-                    <div className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors">
-                      <button
-                        type="button"
-                        onClick={() => {
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        if (event.id != null) toggleEvent(event.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
                           if (event.id != null) toggleEvent(event.id);
-                        }}
-                        aria-expanded={isOpen}
-                        aria-label={
-                          isOpen
-                            ? t("common:eventDetail.collapse")
-                            : t("common:eventDetail.expand")
                         }
-                        className="p-1 text-gray-500 hover:text-gray-200 rounded flex-shrink-0 cursor-pointer"
-                      >
-                        <ChevronRight
-                          className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                        />
-                      </button>
+                      }}
+                      aria-expanded={isOpen}
+                      className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors cursor-pointer select-none"
+                    >
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? "rotate-90" : ""}`}
+                      />
+
+                      <div className="w-14 text-[11px] text-gray-500 font-mono flex-shrink-0 text-right">
+                        {formatTime(event.created_at)}
+                      </div>
+
+                      <AgentStatusBadge status={statusFromEventType(event.event_type)} />
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-300 truncate">
+                          {event.summary || event.event_type}
+                        </p>
+                      </div>
+
+                      {event.tool_name && (
+                        <span className="text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
+                          {event.tool_name}
+                        </span>
+                      )}
+
+                      <span className="text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
+                        {timeAgo(event.created_at)}
+                      </span>
 
                       <Link
                         to={`/sessions/${event.session_id}`}
-                        className="flex-1 flex items-center gap-4 min-w-0 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
+                        onClick={(e) => e.stopPropagation()}
+                        title={t("viewSession")}
+                        className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
                       >
-                        <div className="w-14 text-[11px] text-gray-500 font-mono flex-shrink-0 text-right">
-                          {formatTime(event.created_at)}
-                        </div>
-
-                        <AgentStatusBadge status={statusFromEventType(event.event_type)} />
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-300 truncate">
-                            {event.summary || event.event_type}
-                          </p>
-                        </div>
-
-                        {event.tool_name && (
-                          <span className="text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
-                            {event.tool_name}
-                          </span>
-                        )}
-
-                        <span className="text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
-                          {timeAgo(event.created_at)}
-                        </span>
+                        {t("viewSession")}
+                        <ExternalLink className="w-3 h-3" />
                       </Link>
                     </div>
                     {isOpen && <EventDetail event={event} />}
@@ -222,7 +227,6 @@ export function ActivityFeed() {
           )}
         </>
       )}
-
     </div>
   );
 }

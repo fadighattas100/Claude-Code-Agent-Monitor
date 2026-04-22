@@ -118,8 +118,7 @@ function ScalarValue({ value }: { value: unknown }) {
 // ───────────────────────── Terminal-styled JSON code view ─────────────────────────
 
 function CodeView({ value }: { value: unknown }) {
-  const text =
-    typeof value === "string" ? value : safeStringify(value);
+  const text = typeof value === "string" ? value : safeStringify(value);
 
   return (
     <div className="relative bg-black/70 border border-border rounded font-mono text-[11px] overflow-hidden">

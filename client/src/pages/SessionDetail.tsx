@@ -434,7 +434,6 @@ export function SessionDetail() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

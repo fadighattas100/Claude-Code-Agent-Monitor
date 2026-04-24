@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, X, Copy, Check } from "lucide-react";
+import { Download, X, Copy, Check, RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
@@ -31,6 +31,7 @@ export function UpdateNotifier() {
   const [applying, setApplying] = useState(false);
   const [applyErr, setApplyErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const syncFromPayload = useCallback((s: UpdateStatusPayload) => {
     setStatus(s);
@@ -90,6 +91,20 @@ export function UpdateNotifier() {
     } catch (e) {
       setApplying(false);
       setApplyErr(e instanceof Error ? e.message : t("applyError"));
+    }
+  };
+
+  const checkNow = async () => {
+    if (checking) return;
+    setApplyErr(null);
+    setChecking(true);
+    try {
+      const fresh = await api.updates.check();
+      syncFromPayload(fresh);
+    } catch (e) {
+      setApplyErr(e instanceof Error ? e.message : t("checkError"));
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -166,6 +181,15 @@ export function UpdateNotifier() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {applying ? t("applying") : t("apply")}
+          </button>
+          <button
+            type="button"
+            onClick={checkNow}
+            disabled={checking}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-surface-0 text-sm text-gray-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-colors disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 ${checking ? "animate-spin" : ""}`} aria-hidden />
+            {checking ? t("checking") : t("checkNow")}
           </button>
           <button
             type="button"

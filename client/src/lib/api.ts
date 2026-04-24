@@ -34,6 +34,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   updates: {
     status: () => request<UpdateStatusPayload>("/updates/status"),
+    check: () =>
+      request<UpdateStatusPayload>("/updates/check", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
     apply: () =>
       request<{ ok: boolean; message: string }>("/updates/apply", {
         method: "POST",

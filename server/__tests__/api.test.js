@@ -49,6 +49,7 @@ const EXPECTED_API_PATHS = [
   "/api/import/scan-path",
   "/api/import/upload",
   "/api/updates/status",
+  "/api/updates/check",
   "/api/updates/apply",
   "/api/openapi.json",
 ];

@@ -10,5 +10,8 @@
   "applyError": "Could not start update",
   "fetchError": "Could not reach git remote. Try again when you are online.",
   "notGit": "This install is not a git clone; use a manual upgrade path.",
-  "restartNote": "The server will stop briefly, then start again when finished."
+  "restartNote": "The server will stop briefly, then start again when finished.",
+  "checkNow": "Check now",
+  "checking": "Checking…",
+  "checkError": "Could not check for updates"
 }

@@ -81,6 +81,15 @@ describe("GET /api/updates/status", () => {
   });
 });
 
+describe("POST /api/updates/check", () => {
+  it("returns a fresh update status payload", async () => {
+    const res = await httpFetch("/api/updates/check", { method: "POST", body: "{}" });
+    assert.equal(res.status, 200);
+    assert.equal(typeof res.body.git_repo, "boolean");
+    assert.equal(typeof res.body.update_available, "boolean");
+  });
+});
+
 describe("POST /api/updates/apply", () => {
   it("returns 403 when DASHBOARD_SELF_UPDATE disables self-update", async () => {
     const prev = process.env.DASHBOARD_SELF_UPDATE;

@@ -36,6 +36,23 @@ router.get("/status", async (_req, res) => {
   }
 });
 
+router.post("/check", async (_req, res) => {
+  try {
+    const status = await getUpdatesStatus();
+    try {
+      const { broadcast } = require("../websocket");
+      broadcast("update_status", status);
+    } catch {
+      // WS not initialized (e.g. in isolated tests) — safe to ignore.
+    }
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({
+      error: { code: "UPDATE_CHECK_FAILED", message: err.message || String(err) },
+    });
+  }
+});
+
 router.post("/apply", async (req, res) => {
   if (!isSelfUpdateAllowed(req)) {
     return res.status(403).json({

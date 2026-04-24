@@ -13,7 +13,7 @@ function isUpdateCheckDisabled() {
 function intervalMs() {
   const n = Number.parseInt(process.env.DASHBOARD_UPDATE_CHECK_INTERVAL_MS || "", 10);
   if (Number.isFinite(n) && n >= 60_000) return n;
-  return 30 * 60 * 1000;
+  return 5 * 60 * 1000;
 }
 
 function startUpdateScheduler({ broadcast }) {

@@ -10,5 +10,8 @@
   "applyError": "Không thể bắt đầu cập nhật",
   "fetchError": "Không kết nối được remote git. Thử lại khi có mạng.",
   "notGit": "Bản cài đặt này không phải bản git clone; hãy nâng cấp thủ công.",
-  "restartNote": "Máy chủ sẽ dừng ngắn rồi chạy lại khi xong."
+  "restartNote": "Máy chủ sẽ dừng ngắn rồi chạy lại khi xong.",
+  "checkNow": "Kiểm tra ngay",
+  "checking": "Đang kiểm tra…",
+  "checkError": "Không thể kiểm tra cập nhật"
 }

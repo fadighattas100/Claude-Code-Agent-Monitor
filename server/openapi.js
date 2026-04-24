@@ -1838,6 +1838,34 @@ function createOpenApiSpec() {
           },
         },
       },
+      "/api/updates/check": {
+        post: {
+          tags: ["Updates"],
+          summary: "Run an update check immediately and broadcast the result",
+          operationId: "triggerUpdatesCheck",
+          responses: {
+            200: {
+              description: "Fresh update status payload (also broadcast over WebSocket)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    additionalProperties: true,
+                    description:
+                      "Same shape as GET /api/updates/status. Also sent as an update_status WebSocket message to all connected clients.",
+                  },
+                },
+              },
+            },
+            500: {
+              description: "Update check failed",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+            },
+          },
+        },
+      },
       "/api/updates/apply": {
         post: {
           tags: ["Updates"],

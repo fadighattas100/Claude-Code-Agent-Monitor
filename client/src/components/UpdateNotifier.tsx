@@ -1,5 +1,7 @@
 /**
- * @file Modal prompting users when the dashboard git checkout is behind the remote, with copy-command and one-click self-update.
+ * @file Modal that tells the user when the dashboard's git checkout is behind
+ * its remote and shows the exact command to run in a terminal. The dashboard
+ * never pulls or restarts itself — the user copies and runs the command.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -28,15 +30,13 @@ export function UpdateNotifier() {
   const { t } = useTranslation("updates");
   const [status, setStatus] = useState<UpdateStatusPayload | null>(null);
   const [dismissedSha, setDismissedSha] = useState<string | null>(loadDismissedSha);
-  const [applying, setApplying] = useState(false);
-  const [waitingRestart, setWaitingRestart] = useState(false);
-  const [applyErr, setApplyErr] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
 
   const syncFromPayload = useCallback((s: UpdateStatusPayload) => {
     setStatus(s);
-    if (!s.fetch_error) setApplyErr(null);
+    if (!s.fetch_error) setError(null);
   }, []);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function UpdateNotifier() {
         if (cancelled) return;
         syncFromPayload(s);
         // Mirror the initial /status into the local event bus so other components
-        // (e.g. the Sidebar "Check for updates" button) can react to it without
+        // (e.g. the Sidebar "Check for updates" button) can react without
         // triggering a second git fetch on mount.
         eventBus.publish({
           type: "update_status",
@@ -93,58 +93,15 @@ export function UpdateNotifier() {
     }
   };
 
-  const apply = async () => {
-    setApplyErr(null);
-    setApplying(true);
-    try {
-      await api.updates.apply();
-      // Server accepted the update; it will exit shortly. Switch to the
-      // waiting-for-restart phase so the button doesn't sit on "Updating…"
-      // forever. The effect below watches for WS reconnect and reloads.
-      setApplying(false);
-      setWaitingRestart(true);
-    } catch (e) {
-      setApplying(false);
-      setApplyErr(e instanceof Error ? e.message : t("applyError"));
-    }
-  };
-
-  // While waiting for the server to come back, watch the WS connection state.
-  // useWebSocket reconnects every 2s and publishes to eventBus. Once we see a
-  // disconnect followed by a fresh reconnect, the new server is up — reload
-  // the page so the UI picks up the new build. Fall back to an error after
-  // ~3 minutes if nothing comes back.
-  useEffect(() => {
-    if (!waitingRestart) return;
-    let sawDisconnect = !eventBus.connected;
-    const unsubscribe = eventBus.onConnection((connected: boolean) => {
-      if (!connected) {
-        sawDisconnect = true;
-        return;
-      }
-      if (sawDisconnect) {
-        window.location.reload();
-      }
-    });
-    const timeout = window.setTimeout(() => {
-      setWaitingRestart(false);
-      setApplyErr(t("restartTimeout"));
-    }, 180_000);
-    return () => {
-      unsubscribe();
-      window.clearTimeout(timeout);
-    };
-  }, [waitingRestart, t]);
-
   const checkNow = async () => {
     if (checking) return;
-    setApplyErr(null);
+    setError(null);
     setChecking(true);
     try {
       const fresh = await api.updates.check();
       syncFromPayload(fresh);
     } catch (e) {
-      setApplyErr(e instanceof Error ? e.message : t("checkError"));
+      setError(e instanceof Error ? e.message : t("checkError"));
     } finally {
       setChecking(false);
     }
@@ -198,7 +155,7 @@ export function UpdateNotifier() {
 
         <p className="text-xs text-gray-500">{t("restartNote")}</p>
 
-        {applyErr ? <p className="text-sm text-red-400">{applyErr}</p> : null}
+        {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
         <div className="flex flex-wrap gap-2 pt-1">
           {status.manual_command ? (
@@ -206,39 +163,16 @@ export function UpdateNotifier() {
               type="button"
               onClick={copyCmd}
               disabled={copied}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-surface-0 text-sm text-gray-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-colors disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-60 transition-colors"
             >
-              {copied ? (
-                <Check className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? t("copied") : t("copy")}
             </button>
           ) : null}
           <button
             type="button"
-            onClick={apply}
-            disabled={
-              applying || waitingRestart || !status.git_repo || Boolean(status.fetch_error)
-            }
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {waitingRestart ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" aria-hidden />
-                {t("restarting")}
-              </>
-            ) : applying ? (
-              t("applying")
-            ) : (
-              t("apply")
-            )}
-          </button>
-          <button
-            type="button"
             onClick={checkNow}
-            disabled={checking || waitingRestart}
+            disabled={checking}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-surface-0 text-sm text-gray-200 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-colors disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${checking ? "animate-spin" : ""}`} aria-hidden />

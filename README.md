@@ -430,13 +430,9 @@ flowchart LR
 | `CLAUDE_DASHBOARD_PORT` | `4820`        | Port used by hook handler to reach the server |
 | `NODE_ENV`              | `development` | Set to `production` to serve the built client |
 | `DASHBOARD_UPDATE_CHECK` | _(enabled)_ | Set to `0` / `false` / `off` to disable periodic git upstream checks |
-| `DASHBOARD_UPDATE_CHECK_INTERVAL_MS` | `300000` (5 min) | Interval between automatic checks; floor 60 000 ms. Users can also click **Check now** in the update modal to run one on demand. |
-| `DASHBOARD_SELF_UPDATE` | _(loopback)_ | `0` disables `POST /api/updates/apply` for everyone; `1` allows self-update from any client IP (use only on trusted networks) |
-| `DASHBOARD_RESTART_COMMAND` | `npm start` | Command the self-update helper runs after `git pull` and `npm run setup` (for example `npm run dev` while developing the dashboard itself) |
+| `DASHBOARD_UPDATE_CHECK_INTERVAL_MS` | `300000` (5 min) | Interval between automatic checks; floor 60 000 ms. Users can also click **Check now** in the update modal or in the sidebar to run one on demand. |
 
-For git clones, the server periodically `git fetch`es `origin` and compares your checkout to `origin/master`, `origin/main`, or `origin/HEAD`. When you are behind, a message appears in the server terminal and a modal appears in the UI with a copy-paste command and an optional **Update & restart** action (loopback clients only unless `DASHBOARD_SELF_UPDATE=1`).
-
-The self-update helper runs `npm run build` automatically when `NODE_ENV` is `production` before restarting.
+For git clones, the server periodically `git fetch`es `origin` and compares your checkout to `origin/master`, `origin/main`, or `origin/HEAD`. When you are behind, a message appears in the server terminal and a modal appears in the UI with the exact command to run. The dashboard never pulls or restarts itself — you copy the command, run it in a terminal, then restart the server the same way you started it.
 
 ---
 

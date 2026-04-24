@@ -575,6 +575,7 @@
           >
           <a href="#vscode-ext" class="nav-link"><span class="nav-icon">◈</span>VS Code Extension</a>
           <a href="#settings-page" class="nav-link"><span class="nav-icon">◈</span>Settings Page</a>
+          <a href="#update-notifier" class="nav-link"><span class="nav-icon">◈</span>Update Notifier</a>
 
           <div class="nav-section">Ops & Reference</div>
           <a href="#deployment" class="nav-link"><span class="nav-icon">◈</span>Deployment Modes</a>
@@ -3691,6 +3692,131 @@ ccam-export all --output backup.json</code></pre>
                 Each Claude model variant (e.g., Opus 4.6 vs Opus 4.1) has its own explicit pricing
                 pattern because different model versions have different rates. The cost engine uses
                 specificity sorting — longer patterns match before shorter ones.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── Update Notifier ────────────────────────────────────────────── -->
+        <section id="update-notifier">
+          <div class="section-label">◈ Integrations</div>
+          <h2>Update Notifier</h2>
+
+          <div class="screenshot-gallery gallery-single">
+            <div class="screenshot-card">
+              <img src="images/update.png" alt="Update modal showing commits-behind count and copy-to-clipboard command" loading="lazy" />
+              <div class="screenshot-caption"><span class="caption-icon">⬆</span> Update Notifier — copy-the-command modal, no self-restart</div>
+            </div>
+          </div>
+
+          <p>
+            A detection-only subsystem that tells the user when the dashboard's git checkout is behind
+            its tracked upstream (<code>origin/master</code> / <code>origin/main</code> /
+            <code>origin/HEAD</code>). The server <strong>never</strong> pulls or restarts itself —
+            the user runs the printed command in a terminal — so the mechanism cannot break dev
+            sessions, pm2/systemd/launchd/Docker supervision, or leave orphaned processes.
+          </p>
+
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+flowchart LR
+    S["Server startup"] --> SCHED["Update scheduler<br/>(poll every 5 min)"]
+    SCHED -->|"git fetch origin --prune<br/>(execFile, 120s timeout)"| GIT[(origin remote)]
+    GIT --> CMP["rev-list --count<br/>HEAD..origin/master"]
+    CMP -->|behind > 0| FP{"fingerprint<br/>changed?"}
+    FP -->|yes| WS["broadcast<br/>update_status"]
+    FP -->|no| IDLE["skip broadcast"]
+    WS --> CLIENT["UpdateNotifier<br/>+ Sidebar badge"]
+
+    CHECK["POST /api/updates/check<br/>(Sidebar / modal button)"] --> SCHED
+    STATUS["GET /api/updates/status"] -.->|direct read| CMP
+
+    style WS fill:#6366f1,stroke:#818cf8,color:#fff
+    style CLIENT fill:#10b981,stroke:#34d399,color:#fff
+            </pre>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon ic-emerald">🛰</div>
+              <h3>Non-Blocking Detection</h3>
+              <p>
+                <code>server/lib/update-check.js</code> runs <code>git fetch origin --prune</code>
+                through <code>execFile</code> (no shell) with a 120s timeout, then compares HEAD
+                to the tracked upstream with <code>rev-list --count</code>. Non-git installs,
+                missing <code>origin</code>, and offline fetches all return <strong>soft
+                payloads</strong> — the call never throws, so a flaky remote cannot block the
+                dashboard.
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon ic-violet">⏱</div>
+              <h3>5-min Scheduler</h3>
+              <p>
+                <code>server/update-scheduler.js</code> ticks every
+                <code>DASHBOARD_UPDATE_CHECK_INTERVAL_MS</code> (default 300 000, floor 60 000)
+                with <code>.unref()</code> timers. It only broadcasts when the fingerprint
+                <code>{update_available, remote_sha, commits_behind, fetch_error}</code> changes,
+                and prints a framed stdout block on up-to-date → behind transitions.
+                <code>DASHBOARD_UPDATE_CHECK=0</code> disables it entirely.
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon ic-cyan">📋</div>
+              <h3>Copy-Pastable Command</h3>
+              <p>
+                The status payload includes a ready-to-run <code>manual_command</code>:
+                <code>cd "&lt;root&gt;" &amp;&amp; git pull --ff-only &amp;&amp; npm run setup</code>
+                (plus <code>npm run build</code> in production). The modal's primary button
+                copies it to the clipboard; the user pastes it into a terminal and restarts the
+                server however they started it.
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon ic-amber">🎯</div>
+              <h3>Two UI Surfaces</h3>
+              <p>
+                Modal (<code>UpdateNotifier.tsx</code>) appears when behind and this
+                <code>remote_sha</code> hasn't been dismissed; ESC / backdrop click to close.
+                Sidebar button (<code>Sidebar.tsx</code>) is always visible — emerald badge when
+                behind, amber on fetch error. Clicking it clears any prior dismissal and fires
+                <code>POST /api/updates/check</code>.
+              </p>
+            </div>
+          </div>
+
+          <h3>API Surface</h3>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead>
+                <tr>
+                  <th>Endpoint</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>GET /api/updates/status</code></td>
+                  <td>Read-only check — runs <code>git fetch</code>, compares, returns the payload.</td>
+                </tr>
+                <tr>
+                  <td><code>POST /api/updates/check</code></td>
+                  <td>Same check, and broadcasts <code>update_status</code> over WebSocket so every connected client re-syncs at once.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">ℹ</div>
+            <div class="callout-body">
+              <strong>There is no <code>POST /api/updates/apply</code></strong>
+              <p>
+                A self-restart route existed briefly during development but was removed: a process
+                cannot reliably replace itself without an external supervisor. Every environment
+                (dev vs prod, pm2/systemd/Docker, macOS/Linux/Windows) surfaced a different
+                failure mode. Shipping detection-only keeps the mechanism portable and the
+                server lifecycle owned by whatever started it.
               </p>
             </div>
           </div>

@@ -70,6 +70,7 @@ Architectural overview and technical reference for the Agent Dashboard system, c
 - [MCP Integration](#mcp-integration)
 - [State Management](#state-management)
 - [Browser Notification System](#browser-notification-system)
+- [Update Notifier Subsystem](#update-notifier-subsystem)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Security Considerations](#security-considerations)
 - [Performance Characteristics](#performance-characteristics)
@@ -1473,6 +1474,142 @@ Notification preferences remain in `localStorage` (`agent-monitor-notifications`
 | Session Error | `onSessionError` | Filtered during push fan-out |
 | Session Complete | `onSessionComplete` | Filtered during push fan-out |
 | Subagent Spawn | `onSubagentSpawn` | Filtered during push fan-out |
+
+---
+
+## Update Notifier Subsystem
+
+The Update Notifier is a **detection-only** subsystem that tells the user when the dashboard's git checkout is behind its tracked upstream branch. It never mutates the checkout or restarts the server — those actions are intentionally left to the user in a terminal, because a process cannot reliably replace itself without an external supervisor.
+
+<p align="center">
+  <img src="images/update.png" alt="Update modal with copy-to-clipboard command" width="100%">
+</p>
+
+### Module Layout
+
+```mermaid
+graph TD
+    subgraph "Server"
+        LIB["server/lib/update-check.js<br/>getUpdatesStatus()"]
+        SCHED["server/update-scheduler.js<br/>startUpdateScheduler({ broadcast })"]
+        ROUTE["server/routes/updates.js<br/>GET /status · POST /check"]
+        WS["server/websocket.js<br/>broadcast('update_status', …)"]
+    end
+
+    subgraph "Client"
+        API["client/src/lib/api.ts<br/>api.updates.{status,check}"]
+        BUS["client/src/lib/eventBus.ts<br/>subscribe / publish"]
+        MODAL["UpdateNotifier.tsx<br/>dismissedSha → localStorage"]
+        SIDEBAR["Sidebar.tsx<br/>Check-for-updates button"]
+    end
+
+    SCHED -->|tick every 5 min| LIB
+    ROUTE -->|on request| LIB
+    SCHED -->|fingerprint changed| WS
+    ROUTE -->|POST /check| WS
+    WS -->|update_status frame| API
+    API -->|status() mirror| BUS
+    WS -->|forwarded by eventBus| BUS
+    BUS --> MODAL
+    BUS --> SIDEBAR
+    SIDEBAR -->|click| API
+    MODAL -->|click| API
+
+    style WS fill:#6366f1,stroke:#818cf8,color:#fff
+    style LIB fill:#10b981,stroke:#34d399,color:#fff
+```
+
+### Detection Pipeline
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Sched as Scheduler
+    participant Lib as update-check.js
+    participant Git as git
+    participant WS as WebSocket broadcast
+    participant Client as UpdateNotifier / Sidebar
+
+    Sched->>Lib: tick()
+    Lib->>Lib: fs.existsSync(.git)?
+    alt not a git repo
+        Lib-->>Sched: {git_repo:false, update_available:false}
+    else git repo
+        Lib->>Git: git remote → has "origin"?
+        alt no origin
+            Lib-->>Sched: {message:"No origin remote configured"}
+        else
+            Lib->>Git: git fetch origin --prune (120s timeout)
+            alt fetch fails
+                Lib-->>Sched: {fetch_error:"…"}
+            else
+                Lib->>Git: git rev-parse HEAD
+                Lib->>Git: git rev-parse origin/master|main|HEAD
+                Lib->>Git: git rev-list --count HEAD..ref
+                Lib-->>Sched: {update_available, remote_sha, commits_behind, manual_command}
+            end
+        end
+    end
+    Sched->>Sched: fingerprint = JSON.stringify({a,r,b,e})
+    alt fingerprint changed
+        Sched->>WS: broadcast("update_status", payload)
+        WS->>Client: WS frame
+        Client->>Client: syncFromPayload → render modal/badge
+    else unchanged
+        Sched->>Sched: skip broadcast
+    end
+```
+
+### Component Responsibilities
+
+| Component | Responsibility |
+| --- | --- |
+| **`server/lib/update-check.js`** | Pure function `getUpdatesStatus(root?, { skipFetch? })`. Runs every git call via `execFile` (no shell, 10s–120s timeouts). Handles non-git installs, missing `origin`, fetch failures, and unresolvable upstream refs as soft payloads — never throws to the caller. Builds the copy-pastable `manual_command` (`cd … && git pull --ff-only && npm run setup`, plus `npm run build` in production). |
+| **`server/update-scheduler.js`** | Ticks the lib every `DASHBOARD_UPDATE_CHECK_INTERVAL_MS` (default 300 000, floor 60 000). First tick is scheduled 8s after server start with `.unref()` so it doesn't block shutdown. Broadcasts only when the fingerprint `{update_available, remote_sha, commits_behind, fetch_error}` changes. Emits a framed message to stdout on "up-to-date → behind" transitions. `DASHBOARD_UPDATE_CHECK=0\|false\|off` disables the scheduler entirely. |
+| **`server/routes/updates.js`** | Two endpoints: `GET /status` (read-only check), `POST /check` (check + broadcast). No auth — the dashboard is assumed local. There is **no** `POST /apply` route. |
+| **`UpdateNotifier.tsx`** | Modal. Hydrates from `api.updates.status()` on mount and mirrors the payload back into the local `eventBus` so the Sidebar can listen without a second git fetch. Subscribes to `update_status` WS frames for ongoing sync. Keeps `dismissedSha` in `localStorage` (`agent-monitor-update-dismissed-sha`) and in React state; a window event `dashboard:reset-update-dismissal` from the Sidebar clears both. ESC / backdrop click dismisses. |
+| **`Sidebar.tsx`** | Always-visible "Check for updates" button in the footer. Subscribes to `update_status` (no own fetch). On click: clears dismissed SHA in localStorage, dispatches `dashboard:reset-update-dismissal`, then calls `api.updates.check()`. Visual state: emerald badge when `update_available`, amber when `fetch_error`, neutral otherwise. |
+
+### Payload Shape
+
+```ts
+interface UpdateStatusPayload {
+  git_repo: boolean;
+  update_available: boolean;
+  repo_root?: string;
+  remote_ref?: string | null;      // "origin/master" | "origin/main" | …
+  local_sha?: string | null;
+  remote_sha?: string | null;
+  commits_behind?: number;
+  manual_command?: string | null;  // "cd … && git pull --ff-only && npm run setup"
+  message?: string | null;
+  fetch_error?: string;            // set when git fetch fails
+}
+```
+
+The same shape is used by `GET /status`, `POST /check`, and the `update_status` WS message.
+
+### Failure Mode Matrix
+
+| Condition | Returned payload | User-visible effect |
+| --- | --- | --- |
+| Not a git clone | `{git_repo:false, update_available:false, message:"Install directory is not a git clone…"}` | Modal suppressed (`update_available` false). Sidebar stays neutral. |
+| No `origin` remote | `{git_repo:true, update_available:false, message:"No origin remote configured…"}` | Same as above. |
+| `git fetch` failed (offline, auth) | `{git_repo:true, update_available:false, fetch_error:"<stderr>"}` | Sidebar button goes amber; modal stays suppressed until a successful check. |
+| No upstream ref resolvable | `{git_repo:true, update_available:false, message:"Could not resolve origin/master…"}` | Modal suppressed. |
+| Healthy, up to date | `{git_repo:true, update_available:false, commits_behind:0, local_sha, remote_sha}` | Sidebar neutral, modal suppressed. |
+| Healthy, behind | `{git_repo:true, update_available:true, commits_behind:N, manual_command, …}` | Modal opens (unless `dismissedSha === remote_sha`); Sidebar badges green. |
+
+### Why No Self-Restart
+
+An earlier iteration included `POST /api/updates/apply` + a detached helper script that ran `git pull && npm run setup && npm start`. It was removed because:
+
+- **Branch mismatch:** detection compares against `origin/master`, but `git pull` follows the current branch's upstream — so an apply from a feature branch would succeed without actually closing the gap.
+- **Supervisor ambiguity:** `npm run dev` (concurrently), `npm start`, `pm2`, `systemd`, `launchd`, and Docker each need different restart logic; the helper could only encode one.
+- **Silent failures:** `npm install` / `npm run build` / port-release timing issues surface as a dead server with no user-facing feedback.
+- **No rollback:** a partial pull + install leaves a broken checkout with no atomic recovery.
+
+The replacement is information-only — the dashboard tells the user *when* to update and *exactly what to run*; the user owns the *how* in their own shell. The detection half carries all the signal value without the fragility.
 
 ---
 

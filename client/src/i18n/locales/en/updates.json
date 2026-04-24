@@ -3,6 +3,7 @@
   "lead": "New commits are on the remote branch. Copy the command below and run it in a terminal — the dashboard will not update itself.",
   "commitsBehind": "{{count}} commit(s) behind {{ref}}",
   "copy": "Copy command",
+  "commandLabel": "Terminal command to update the dashboard",
   "copied": "Copied",
   "dismiss": "Dismiss",
   "fetchError": "Could not reach git remote. Try again when you are online.",

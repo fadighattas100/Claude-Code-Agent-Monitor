@@ -3,6 +3,7 @@
   "lead": "Đã có commit mới trên nhánh remote. Hãy sao chép lệnh bên dưới và chạy trong terminal — bảng điều khiển sẽ không tự cập nhật.",
   "commitsBehind": "Chậm {{ref}} {{count}} commit",
   "copy": "Sao chép lệnh",
+  "commandLabel": "Lệnh terminal để cập nhật bảng điều khiển",
   "copied": "Đã sao chép",
   "dismiss": "Bỏ qua",
   "fetchError": "Không kết nối được remote git. Thử lại khi có mạng.",

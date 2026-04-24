@@ -3,6 +3,7 @@
   "lead": "远程分支有新提交。请复制下方命令并在终端中运行——仪表板不会自动更新自身。",
   "commitsBehind": "落后 {{ref}} {{count}} 个提交",
   "copy": "复制命令",
+  "commandLabel": "用于更新仪表板的终端命令",
   "copied": "已复制",
   "dismiss": "关闭",
   "fetchError": "无法连接 git 远程。请联网后重试。",

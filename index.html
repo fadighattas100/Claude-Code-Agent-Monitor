@@ -491,6 +491,13 @@
           padding: 20px;
         }
       }
+
+      /* Keep long inline code from overflowing card containers. */
+      #update-notifier .feature-card code,
+      #update-notifier .api-table code {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
     </style>
     <!-- Mermaid -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -3720,19 +3727,21 @@ ccam-export all --output backup.json</code></pre>
           <div class="diagram-wrap">
             <pre class="mermaid">
 flowchart LR
-    S["Server startup"] --> SCHED["Update scheduler<br/>(poll every 5 min)"]
-    SCHED -->|"git fetch origin --prune<br/>(execFile, 120s timeout)"| GIT[(origin remote)]
-    GIT --> CMP["rev-list --count<br/>HEAD..origin/master"]
-    CMP -->|behind > 0| FP{"fingerprint<br/>changed?"}
-    FP -->|yes| WS["broadcast<br/>update_status"]
-    FP -->|no| IDLE["skip broadcast"]
-    WS --> CLIENT["UpdateNotifier<br/>+ Sidebar badge"]
+    S["Server start"] --> SCHED["Scheduler<br/>every 5 min"]
+    SCHED --> FETCH["git fetch --prune<br/>execFile, 120s"]
+    FETCH --> CMP["Compare HEAD<br/>vs origin ref"]
+    CMP --> FP{"Behind?"}
+    FP -->|yes| CHG{"Fingerprint<br/>changed?"}
+    FP -->|no| IDLE["Idle"]
+    CHG -->|yes| WS["broadcast<br/>update_status"]
+    CHG -->|no| IDLE
+    WS --> UI["Modal + Sidebar badge"]
 
-    CHECK["POST /api/updates/check<br/>(Sidebar / modal button)"] --> SCHED
-    STATUS["GET /api/updates/status"] -.->|direct read| CMP
+    CHECK["POST /updates/check"] --> FETCH
+    STATUS["GET /updates/status"] -.-> CMP
 
     style WS fill:#6366f1,stroke:#818cf8,color:#fff
-    style CLIENT fill:#10b981,stroke:#34d399,color:#fff
+    style UI fill:#10b981,stroke:#34d399,color:#fff
             </pre>
           </div>
 
@@ -3741,46 +3750,60 @@ flowchart LR
               <div class="feature-icon ic-emerald">🛰</div>
               <h3>Non-Blocking Detection</h3>
               <p>
-                <code>server/lib/update-check.js</code> runs <code>git fetch origin --prune</code>
-                through <code>execFile</code> (no shell) with a 120s timeout, then compares HEAD
-                to the tracked upstream with <code>rev-list --count</code>. Non-git installs,
-                missing <code>origin</code>, and offline fetches all return <strong>soft
-                payloads</strong> — the call never throws, so a flaky remote cannot block the
-                dashboard.
+                A shell-less <code>git fetch</code> with a 120-second timeout, followed by a
+                <code>rev-list</code> against the tracked upstream. Each call runs from
+                <code>server/lib/update-check.js</code> and returns a structured payload —
+                never throws — so a flaky remote can&apos;t stall the dashboard.
               </p>
             </div>
             <div class="feature-card">
               <div class="feature-icon ic-violet">⏱</div>
               <h3>5-min Scheduler</h3>
               <p>
-                <code>server/update-scheduler.js</code> ticks every
-                <code>DASHBOARD_UPDATE_CHECK_INTERVAL_MS</code> (default 300 000, floor 60 000)
-                with <code>.unref()</code> timers. It only broadcasts when the fingerprint
-                <code>{update_available, remote_sha, commits_behind, fetch_error}</code> changes,
-                and prints a framed stdout block on up-to-date → behind transitions.
-                <code>DASHBOARD_UPDATE_CHECK=0</code> disables it entirely.
+                <code>update-scheduler.js</code> polls every five minutes with <code>.unref()</code>
+                timers so it never blocks shutdown, de-duplicates with a fingerprint over the
+                status payload, and announces up-to-date → behind transitions in a framed stdout
+                block. Disable entirely with <code>DASHBOARD_UPDATE_CHECK=0</code>.
               </p>
             </div>
             <div class="feature-card">
               <div class="feature-icon ic-cyan">📋</div>
               <h3>Copy-Pastable Command</h3>
               <p>
-                The status payload includes a ready-to-run <code>manual_command</code>:
-                <code>cd "&lt;root&gt;" &amp;&amp; git pull --ff-only &amp;&amp; npm run setup</code>
-                (plus <code>npm run build</code> in production). The modal's primary button
-                copies it to the clipboard; the user pastes it into a terminal and restarts the
-                server however they started it.
+                Each status payload carries a ready-to-run <code>manual_command</code> — the
+                exact sequence to pull, reinstall, and (in production) rebuild. The modal&apos;s
+                primary button copies it to the clipboard; the user pastes it into a terminal
+                and restarts the server however they started it.
               </p>
             </div>
             <div class="feature-card">
               <div class="feature-icon ic-amber">🎯</div>
               <h3>Two UI Surfaces</h3>
               <p>
-                Modal (<code>UpdateNotifier.tsx</code>) appears when behind and this
-                <code>remote_sha</code> hasn't been dismissed; ESC / backdrop click to close.
-                Sidebar button (<code>Sidebar.tsx</code>) is always visible — emerald badge when
-                behind, amber on fetch error. Clicking it clears any prior dismissal and fires
-                <code>POST /api/updates/check</code>.
+                A modal opens automatically when upstream is ahead; ESC or a backdrop click
+                dismisses it. A persistent sidebar button stays in the footer — emerald when
+                behind, amber when the last check errored — so users can always trigger a fresh
+                check on demand.
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon ic-pink">🛡</div>
+              <h3>Soft Failure Semantics</h3>
+              <p>
+                Non-git installs, a missing <code>origin</code>, offline fetches, and an
+                unresolvable upstream ref all return tagged payloads instead of throwing. The
+                sidebar badge turns amber on fetch errors and the modal stays suppressed until
+                a successful check arrives — no spinners, no stuck state.
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon ic-blue">🧠</div>
+              <h3>Dismissal Memory</h3>
+              <p>
+                Dismissal is keyed by the upstream SHA in <code>localStorage</code>, so closing
+                the modal silences it only for <em>that</em> commit — a newer upstream commit
+                re-opens it automatically. Clicking the sidebar button is an explicit intent
+                signal and clears the stored dismissal before firing a fresh check.
               </p>
             </div>
           </div>

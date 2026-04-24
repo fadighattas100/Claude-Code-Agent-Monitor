@@ -158,18 +158,44 @@ mermaid.initialize({
   });
 })();
 
-/* ─── Active nav link on scroll ─────────────────────────────────────────── */
+/* ─── Active nav link on scroll + click-scroll correction ────────────────── */
 (function () {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const sections = document.querySelectorAll("section[id]");
   const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
   var clickedId = null;
   var clickTimer = null;
 
-  /* On click: lock the highlight so the observer doesn't fight it.
-     Do NOT preventDefault — let the browser handle the actual scroll. */
+  /* Re-assert the scroll position after async layout (lazy-loaded images,
+   * mermaid SVG rendering) shifts the target during the smooth scroll.
+   * Without this, clicking a sidebar link lands short of the target because
+   * the browser's smooth scroll was aimed at the pre-reflow offset. */
+  function correctScrollTo(target) {
+    const delays = [400, 900, 1800];
+    delays.forEach(function (delay) {
+      setTimeout(function () {
+        const rect = target.getBoundingClientRect();
+        if (Math.abs(rect.top) > 4) {
+          target.scrollIntoView({ behavior: "auto", block: "start" });
+        }
+      }, delay);
+    });
+  }
+
+  /* On click: lock the active highlight, handle the scroll ourselves so
+   * we can re-assert position after async reflow, and update the URL via
+   * pushState so back/forward still works. */
   navLinks.forEach(function (link) {
-    link.addEventListener("click", function () {
-      var id = link.getAttribute("href").slice(1);
+    link.addEventListener("click", function (e) {
+      const hash = link.getAttribute("href");
+      if (!hash || hash === "#") return;
+      const id = hash.slice(1);
+      const target = document.getElementById(id);
+      if (!target) return;
+
+      e.preventDefault();
+      if (history.pushState) history.pushState(null, "", hash);
+
       clickedId = id;
       navLinks.forEach(function (l) {
         l.classList.toggle("active", l.getAttribute("href") === "#" + id);
@@ -178,8 +204,20 @@ mermaid.initialize({
       clickTimer = setTimeout(function () {
         clickedId = null;
       }, 1500);
+
+      const behavior = prefersReducedMotion.matches ? "auto" : "smooth";
+      target.scrollIntoView({ behavior: behavior, block: "start" });
+      correctScrollTo(target);
     });
   });
+
+  /* Same correction on initial deep-link load: the browser's native hash
+   * scroll fires before images/mermaid finish, so re-target after async
+   * layout lands. */
+  if (window.location.hash) {
+    const initialTarget = document.getElementById(window.location.hash.slice(1));
+    if (initialTarget) correctScrollTo(initialTarget);
+  }
 
   const observer = new IntersectionObserver(
     (entries) => {

@@ -189,38 +189,16 @@ router.get("/:id/transcripts", (req, res) => {
           : (meta?.description || meta?.agentType || shortId);
         const transcriptSubagentType = meta?.agentType || null;
 
-        // Match database agent: best-effort matching using subagent_type + name
-        let dbAgentId = null;
-        if (isCompact) {
-          // Compaction type: match agents with subagent_type=compaction
-          const compactAgents = dbAgents.filter((a) => a.subagent_type === "compaction");
-          // Try matching compact agent UUID using hex portion from shortId
-          // Database ID format: <sessionId>-compact-<uuid>
-          const compactHex = shortId.replace("acompact-", "");
-          for (const a of compactAgents) {
-            const dbUuid = (a.id.match(/compact-([0-9a-f-]+)$/) || [])[1];
-            if (dbUuid) {
-              // Compare hex with hyphens removed for containment
-              const dbHex = dbUuid.replace(/-/g, "");
-              if (dbHex.includes(compactHex) || compactHex.includes(dbHex.slice(0, 16))) {
-                dbAgentId = a.id;
-                break;
-              }
-            }
+        // Read first-line timestamp from JSONL for time-based matching
+        let transcriptTimestamp = null;
+        try {
+          const jsonlPath = path.join(dir, file);
+          const firstLine = fs.readFileSync(jsonlPath, "utf8").split("\n")[0];
+          if (firstLine) {
+            const entry = JSON.parse(firstLine);
+            transcriptTimestamp = entry.timestamp || null;
           }
-        } else {
-          // Non-compact sub-agents: match by subagent_type + name
-          let matched = dbAgents.filter((a) => a.type === "subagent");
-          if (transcriptSubagentType) {
-            const byType = matched.filter((a) => a.subagent_type === transcriptSubagentType);
-            if (byType.length > 0) matched = byType;
-          }
-          if (transcriptName && matched.length > 1) {
-            const byName = matched.filter((a) => a.name === transcriptName);
-            if (byName.length > 0) matched = byName;
-          }
-          if (matched.length > 0) dbAgentId = matched[0].id;
-        }
+        } catch { /* ignore */ }
 
         result.push({
           id: shortId,
@@ -228,11 +206,96 @@ router.get("/:id/transcripts", (req, res) => {
           type: isCompact ? "compaction" : "subagent",
           subagent_type: transcriptSubagentType,
           has_transcript: true,
-          db_agent_id: dbAgentId,
+          db_agent_id: null, // matched later after all transcripts are collected
+          _timestamp: transcriptTimestamp,
         });
       }
     } catch { /* ignore */ }
   }
+
+  // Match database agents to transcripts using best-effort strategies
+  // Strategy: sort both sides by time within each type, then match by index order.
+  // This works because agents and transcripts are created in chronological order.
+
+  // Step 1: Sort all non-main transcripts by timestamp
+  for (const t of result) {
+    if (t.type === "main") continue;
+    // Store parseable timestamp for sorting
+    t._sortTime = t._timestamp ? new Date(t._timestamp).getTime() : Infinity;
+  }
+
+  // Step 2: Sort DB agents by started_at within each subagent_type
+  const agentsByType = {};
+  for (const a of dbAgents) {
+    const key = a.subagent_type || a.type;
+    if (!agentsByType[key]) agentsByType[key] = [];
+    agentsByType[key].push(a);
+  }
+  for (const key of Object.keys(agentsByType)) {
+    agentsByType[key].sort((a, b) =>
+      (a.started_at || "").localeCompare(b.started_at || "")
+    );
+  }
+
+  // Step 3: Sort transcripts by type+time, then match by index within each type group
+  // Group transcripts by their effective type key
+  const transcriptsByType = {};
+  for (const t of result) {
+    if (t.type === "main") continue;
+    // Compaction transcripts have subagent_type=null, use type as key
+    const key = t.subagent_type || t.type;
+    if (!transcriptsByType[key]) transcriptsByType[key] = [];
+    transcriptsByType[key].push(t);
+  }
+  // Sort each group by timestamp
+  for (const key of Object.keys(transcriptsByType)) {
+    transcriptsByType[key].sort((a, b) => (a._sortTime || Infinity) - (b._sortTime || Infinity));
+  }
+
+  // Step 4: Match by index within each type group
+  // First try db_agent_id exact match, then fall back to positional match
+  for (const key of Object.keys(transcriptsByType)) {
+    const tGroup = transcriptsByType[key];
+    const aGroup = agentsByType[key] || [];
+    const usedAgentIds = new Set();
+
+    for (let i = 0; i < tGroup.length; i++) {
+      const t = tGroup[i];
+
+      // Try exact db_agent_id match first (for non-compact sub-agents with meta.json data)
+      if (t.db_agent_id) {
+        usedAgentIds.add(t.db_agent_id);
+        continue;
+      }
+
+      // Positional match: i-th transcript → i-th agent in the same type group
+      if (i < aGroup.length && !usedAgentIds.has(aGroup[i].id)) {
+        t.db_agent_id = aGroup[i].id;
+        usedAgentIds.add(aGroup[i].id);
+      }
+      // If no agent at this position, db_agent_id stays null — client will show "info missing"
+    }
+  }
+
+  // Clean up internal fields before sending response
+  for (const t of result) {
+    delete t._timestamp;
+    delete t._sortTime;
+  }
+
+  // Sort transcripts: main first, then by time ascending (consistent with agents list order)
+  result.sort((a, b) => {
+    if (a.type === "main") return -1;
+    if (b.type === "main") return 1;
+    const aAgent = dbAgents.find((ag) => ag.id === a.db_agent_id);
+    const bAgent = dbAgents.find((ag) => ag.id === b.db_agent_id);
+    const aTime = aAgent?.started_at ? new Date(aAgent.started_at).getTime() : 0;
+    const bTime = bAgent?.started_at ? new Date(bAgent.started_at).getTime() : 0;
+    if (aTime && bTime) return aTime - bTime;
+    if (aTime) return -1;
+    if (bTime) return 1;
+    return (a.name || "").localeCompare(b.name || "");
+  });
 
   res.json({ transcripts: result });
 });

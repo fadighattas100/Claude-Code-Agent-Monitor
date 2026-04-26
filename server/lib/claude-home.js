@@ -108,6 +108,53 @@ function findSubagentTranscriptPath(sessionId, agentId) {
   return null;
 }
 
+/**
+ * Update CLAUDE_HOME at runtime. Updates process.env so getClaudeHome()
+ * immediately returns the new value, and persists to .env file.
+ * Returns the resolved absolute path.
+ */
+function setClaudeHome(newPath) {
+  const resolved = newPath.replace(/^~(?=\/)/, os.homedir());
+  if (!path.isAbsolute(resolved)) {
+    throw new Error("CLAUDE_HOME must be an absolute path");
+  }
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`Directory does not exist: ${resolved}`);
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isDirectory()) {
+    throw new Error(`Not a directory: ${resolved}`);
+  }
+  process.env.CLAUDE_HOME = resolved;
+  writeEnvFile("CLAUDE_HOME", resolved);
+  return resolved;
+}
+
+/**
+ * Write or update a key=value line in the .env file.
+ * Creates the file if it doesn't exist.
+ */
+function writeEnvFile(key, value) {
+  const envPath = path.resolve(__dirname, "..", "..", ".env");
+  let lines = [];
+  if (fs.existsSync(envPath)) {
+    lines = fs.readFileSync(envPath, "utf8").split("\n");
+  }
+  let found = false;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith(`${key}=`)) {
+      lines[i] = `${key}=${value}`;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    lines.push(`${key}=${value}`);
+  }
+  fs.writeFileSync(envPath, lines.join("\n") + "\n", "utf8");
+}
+
 module.exports = {
   getClaudeHome,
   getProjectsDir,
@@ -116,4 +163,6 @@ module.exports = {
   getSubagentTranscriptPath,
   findTranscriptPath,
   findSubagentTranscriptPath,
+  setClaudeHome,
+  writeEnvFile,
 };

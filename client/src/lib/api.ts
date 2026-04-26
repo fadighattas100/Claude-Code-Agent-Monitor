@@ -142,6 +142,14 @@ export const api = {
         hooks: { installed: boolean; path: string; hooks: Record<string, boolean> };
         server: { uptime: number; node_version: string; platform: string; ws_connections: number };
       }>("/settings/info"),
+    claudeHome: {
+      get: () => request<{ claude_home: string }>("/settings/claude-home"),
+      set: (path: string) =>
+        request<{ ok: boolean; claude_home: string }>("/settings/claude-home", {
+          method: "PUT",
+          body: JSON.stringify({ path }),
+        }),
+    },
     clearData: () =>
       request<{ ok: boolean; cleared: Record<string, number> }>("/settings/clear-data", {
         method: "POST",

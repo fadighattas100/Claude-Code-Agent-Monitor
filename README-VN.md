@@ -197,8 +197,8 @@ Bảng điều khiển cung cấp một bộ tính năng toàn diện để giá
 | Tính năng                            | Sự miêu tả                                                                                                                                                                                                                                                                  |
 |------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Bảng điều khiển**                      | Số liệu thống kê tổng quan, thẻ Agent đang hoạt động với hệ thống phân cấp Subagent có thể thu gọn, nguồn cấp dữ liệu hoạt động gần đây                                                                                                                                                                                 |
-| **Bảng Kanban**                   | Bảng trạng thái Agent 5 cột với các cột được phân trang, tìm nạp theo trạng thái (không có giới hạn nhân tạo)                                                                                                                                                                               |
-| **Phiên**                       | Bảng có thể tìm kiếm, lọc, phân trang của tất cả các phiên Claude Code                                                                                                                                                                                                          |
+| **Bảng Kanban**                   | Hai chế độ với nút chuyển ở đầu trang (lưu trong `localStorage`): **Agent** — 5 cột (Nhàn rỗi / Đã kết nối / Đang làm / Hoàn tất / Lỗi), và **Phiên** — 4 cột (Hoạt động / Hoàn tất / Lỗi / Bỏ dở). Mỗi cột tìm nạp theo trạng thái từ máy chủ (không giới hạn thực tế mỗi cột), sau đó phân trang phía client với 10 thẻ mỗi cột kèm nút "Hiện thêm". Đăng ký WebSocket bám theo chế độ đang xem (`agent_*` so với `session_*`) nên cập nhật khác chế độ không gây tải lại |
+| **Phiên**                       | Bảng toàn bộ phiên có tìm kiếm, bộ lọc và **phân trang phía máy chủ**. Mỗi lần đổi trang gọi `/api/sessions?status=&q=&limit=10&offset=…`, nên tính toán chi phí chỉ chạy trên trang đang hiển thị — không phụ thuộc số phiên trong CSDL. Ô tìm kiếm (`q=`) thực hiện so khớp không phân biệt hoa thường trên `id` / `name` / `cwd` ở máy chủ với debounce 300 ms; phản hồi kèm `total` cho bộ phân trang. Bộ lọc trạng thái, tìm kiếm và phân trang kết hợp với nhau |
 | **Chi tiết phiên**                 | Cây phân cấp tác nhân mỗi phiên (mẹ/con) và dòng thời gian sự kiện đầy đủ                                                                                                                                                                                                      |
 | **Nguồn cấp dữ liệu hoạt động**                  | Nhật ký sự kiện phát trực tuyến theo thời gian thực với tính năng tạm dừng/tiếp tục và phân trang; nhấp vào bất kỳ hàng sự kiện nào để mở rộng nội dung hook payload ngay tại chỗ (bảng EventDetail nội tuyến); nút "Phiên →" chuyên biệt ở cuối mỗi hàng điều hướng trực tiếp đến chi tiết phiên mà không thu gọn feed                                                                   |
 | **Phân tích**                      | Mức sử dụng mã thông báo, tần suất công cụ, bản đồ nhiệt hoạt động (trung tâm, căn chỉnh ngày trong tuần bắt đầu từ Chủ nhật, chú thích công cụ tên ngày), xu hướng phiên, chỉ báo kết nối trực tiếp/ngoại tuyến                                                                                                           |
@@ -708,7 +708,7 @@ Tài liệu OpenAPI được tạo từ `server/openapi.js` và giao diện ngư
 
 | Phương pháp  | Con đường                | Thông số truy vấn                | Sự miêu tả                           |
 | ------- | ------------------- | --------------------------- | ------------------------------------- |
-| `GET`   | `/api/sessions`     | `status`, `limit`, `offset` | Liệt kê các phiên có số lượng Agent       |
+| `GET`   | `/api/sessions`     | `status`, `q`, `limit`, `offset` | Liệt kê phiên kèm số lượng Agent và chi phí mỗi phiên. `q` tìm không phân biệt hoa thường trên `id` / `name` / `cwd`; `limit` mặc định 50, tối đa 10000; phản hồi gồm `total` cho bộ phân trang |
 | `GET`   | `/api/sessions/:id` | --                          | Chi tiết phiên với các Agent và sự kiện |
 | `POST`  | `/api/sessions`     | --                          | Tạo phiên (idempotent trên `id`)   |
 | `PATCH` | `/api/sessions/:id` | --                          | Cập nhật trạng thái/siêu dữ liệu phiên        |
@@ -1234,7 +1234,7 @@ graph TD
 ```mermaid
 graph LR
     ROOT["/ (index)"] --> DASH["Dashboard<br/>stats + agents + events"]
-    K["/kanban"] --> KANBAN["KanbanBoard<br/>5-column agent board"]
+    K["/kanban"] --> KANBAN["KanbanBoard<br/>chuyển Agent / Phiên"]
     S["/sessions"] --> SESS["Sessions<br/>filterable table"]
     D["/sessions/:id"] --> DETAIL["SessionDetail<br/>agents + timeline + cost"]
     A["/activity"] --> ACT["ActivityFeed<br/>streaming event log"]
@@ -1472,7 +1472,7 @@ agent-dashboard/
 |       |       +-- SessionDrillIn.tsx              # Per-session agent tree, tool timeline, events
 |       +-- pages/
 |           |-- Dashboard.tsx      # Overview page
-|           |-- KanbanBoard.tsx    # Agent status columns
+|           |-- KanbanBoard.tsx    # Cột trạng thái Agent / Phiên với nút chuyển
 |           |-- Sessions.tsx       # Sessions table
 |           |-- SessionDetail.tsx  # Single session deep dive
 |           |-- ActivityFeed.tsx   # Real-time event stream

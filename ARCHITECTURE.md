@@ -499,8 +499,8 @@ graph LR
 | Route           | Page          | Data Sources                                           |
 | --------------- | ------------- | ------------------------------------------------------ |
 | `/`             | Dashboard     | `GET /api/stats`, `GET /api/agents`, `GET /api/events`, `GET /api/agents?session_id={sid}` (subagent hierarchy) |
-| `/kanban`       | KanbanBoard   | `GET /api/agents?status={each}` per-status (no limit)  |
-| `/sessions`     | Sessions      | `GET /api/sessions`                                    |
+| `/kanban`       | KanbanBoard   | View toggle persisted in `localStorage`. Agents view: `GET /api/agents?status={each}` per-status (default 10000 cap). Sessions view: `GET /api/sessions?status={each}&limit=10000` per-status. Each column then paginates client-side at `COLUMN_PAGE_SIZE=10`; the WS subscription scopes to the active view. |
+| `/sessions`     | Sessions      | `GET /api/sessions?status=&q=&limit=PAGE_SIZE&offset=page*PAGE_SIZE` — true server-side pagination. The search box passes `q` to the server (300 ms debounced). Response carries `total` for the paginator UI. Cost computation runs server-side over the visible page only. |
 | `/sessions/:id` | SessionDetail | `GET /api/sessions/:id` (includes agents + events)     |
 | `/activity`     | ActivityFeed  | `GET /api/events?limit=100` — click row to expand inline payload; "Session →" button navigates to `/sessions/:id` |
 | `/analytics`    | Analytics     | `GET /api/analytics`                                   |
@@ -686,7 +686,7 @@ erDiagram
 | `idx_events_session`   | events   | `session_id`      | Session detail event list      |
 | `idx_events_type`      | events   | `event_type`      | Filter events by type          |
 | `idx_events_created`   | events   | `created_at DESC` | Activity feed ordering         |
-| `idx_sessions_status`  | sessions | `status`          | Status filter on sessions page |
+| `idx_sessions_status`  | sessions | `status`          | Status filter on Sessions page and Kanban Sessions view |
 | `idx_sessions_started` | sessions | `started_at DESC` | Default sort order             |
 
 ### SQLite Configuration

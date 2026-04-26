@@ -884,17 +884,23 @@
                   <div class="feature-icon ic-emerald">📋</div>
                   <h3>Kanban Board</h3>
                   <p>
-                    5-column agent status board (Idle / Connected / Working / Completed / Error) with
-                    paginated columns (10 per page) and horizontal scroll on overflow.
+                    Two views with a header toggle (persisted in <code>localStorage</code>):
+                    <strong>Agents</strong> — 5 columns (Idle / Connected / Working / Completed /
+                    Error) — and <strong>Sessions</strong> — 4 columns (Active / Completed /
+                    Error / Abandoned). Each column paginates at 10 cards with a "Show more"
+                    affordance, and horizontal scroll handles overflow.
                   </p>
                 </div>
                 <div class="feature-card">
                   <div class="feature-icon ic-amber">📂</div>
                   <h3>Sessions Table</h3>
                   <p>
-                    Searchable, filterable, paginated table of all sessions with color-coded status
-                    badges, agent counts, duration, and model info. Filter by active, completed,
-                    error, or abandoned status. Click any row to drill into the full session detail.
+                    <strong>Server-paginated</strong> table of every recorded session — each page
+                    fetches only its rows so cost computation is bounded regardless of how many
+                    sessions exist. Search (case-insensitive across <code>id</code>,
+                    <code>name</code>, <code>cwd</code>) runs server-side via <code>?q=</code> with
+                    a 300 ms debounce; status filter and search compose. Status badges, agent
+                    counts, duration, and model info on each row; click to drill into detail.
                   </p>
                 </div>
                 <div class="feature-card">
@@ -2474,8 +2480,11 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-get">GET</span>
               <span class="route-path">/api/sessions</span>
               <span class="route-desc"
-                >List sessions — params: <code>status</code>, <code>limit</code>,
-                <code>offset</code></span
+                >List sessions with agent counts and per-session cost. Params:
+                <code>status</code>, <code>q</code> (case-insensitive search across
+                <code>id</code>/<code>name</code>/<code>cwd</code>), <code>limit</code>
+                (default 50, max 10000), <code>offset</code>. Response includes
+                <code>total</code> for paginators.</span
               >
             </div>
             <div class="route-item">

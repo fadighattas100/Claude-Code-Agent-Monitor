@@ -196,8 +196,8 @@ The dashboard offers a comprehensive set of features to monitor and analyze your
 | Feature                            | Description                                                                                                                                                                                                                                                                  |
 |------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Dashboard**                      | Overview stats, active agent cards with collapsible subagent hierarchy, recent activity feed                                                                                                                                                                                 |
-| **Kanban Board**                   | 5-column agent status board with paginated columns, per-status fetching (no artificial limits)                                                                                                                                                                               |
-| **Sessions**                       | Searchable, filterable, paginated table of all Claude Code sessions                                                                                                                                                                                                          |
+| **Kanban Board**                   | Two views with a header toggle (persisted in `localStorage`): **Agents** — 5 columns (Idle / Connected / Working / Completed / Error) — and **Sessions** — 4 columns (Active / Completed / Error / Abandoned). Each column fetches its own status from the server (effectively unlimited per status), then paginates client-side at 10 cards per column with a "Show more" affordance. WS subscription scopes to the active view (`agent_*` vs `session_*` frames) so off-view updates don't trigger refetches |
+| **Sessions**                       | Searchable, filterable, **server-paginated** table of every recorded session. Each page click hits `/api/sessions?status=&q=&limit=10&offset=…`, so cost computation runs only over the visible page — independent of how many sessions exist in the database. The search box (`q=`) does case-insensitive matching across `id` / `name` / `cwd` on the server with a 300 ms debounce, and the response carries a `total` count for the paginator UI. Status filter, search, and pagination compose. |
 | **Session Detail**                 | Per-session agent hierarchy tree and full event timeline with multi-dimension filters (status, event type, tool, agent, text search, date range), Pre/Post grouping by `tool_use_id`, human-readable summary block, and tool-aware input/response renderers (terminal for Bash, unified diff for Edit, line-numbered code for Read/Write, match list for Grep, key/value card for MCP tools) |
 | **Activity Feed**                  | Real-time streaming event log with pause/resume, multi-dimension filters (same toolbar as Session Detail plus a Session filter), server-driven "Load more" pagination, debounced filter-aware live refresh preserving the loaded page size, grouping toggle, origin prefix showing project › session › subagent, and a "Session →" button per row                                         |
 | **Analytics**                      | Token usage, tool frequency, activity heatmap (centered, day-of-week aligned starting Sunday, day-name tooltips), session trends, live/offline connection indicator                                                                                                           |
@@ -712,7 +712,7 @@ The OpenAPI document is generated from `server/openapi.js`, and Swagger UI is se
 
 | Method  | Path                | Query Params                | Description                           |
 | ------- | ------------------- | --------------------------- | ------------------------------------- |
-| `GET`   | `/api/sessions`     | `status`, `limit`, `offset` | List sessions with agent counts       |
+| `GET`   | `/api/sessions`     | `status`, `q`, `limit`, `offset` | List sessions with agent counts and per-session cost. `q` does case-insensitive search across `id` / `name` / `cwd`. `limit` defaults to 50, max 10000. Response includes `total` for paginators. |
 | `GET`   | `/api/sessions/:id` | --                          | Session detail with agents and events |
 | `POST`  | `/api/sessions`     | --                          | Create session (idempotent on `id`)   |
 | `PATCH` | `/api/sessions/:id` | --                          | Update session status/metadata        |
@@ -1241,8 +1241,8 @@ graph TD
 ```mermaid
 graph LR
     ROOT["/ (index)"] --> DASH["Dashboard<br/>stats + agents + events"]
-    K["/kanban"] --> KANBAN["KanbanBoard<br/>5-column agent board"]
-    S["/sessions"] --> SESS["Sessions<br/>filterable table"]
+    K["/kanban"] --> KANBAN["KanbanBoard<br/>agents/sessions toggle"]
+    S["/sessions"] --> SESS["Sessions<br/>server-paginated table"]
     D["/sessions/:id"] --> DETAIL["SessionDetail<br/>agents + timeline + cost"]
     A["/activity"] --> ACT["ActivityFeed<br/>streaming event log"]
     AN["/analytics"] --> ANALYTICS["Analytics<br/>tokens + heatmap + trends"]
@@ -1479,8 +1479,8 @@ agent-dashboard/
 |       |       +-- SessionDrillIn.tsx              # Per-session agent tree, tool timeline, events
 |       +-- pages/
 |           |-- Dashboard.tsx      # Overview page
-|           |-- KanbanBoard.tsx    # Agent status columns
-|           |-- Sessions.tsx       # Sessions table
+|           |-- KanbanBoard.tsx    # Agents/Sessions toggle, status columns
+|           |-- Sessions.tsx       # Server-paginated sessions table
 |           |-- SessionDetail.tsx  # Single session deep dive
 |           |-- ActivityFeed.tsx   # Real-time event stream
 |           |-- Analytics.tsx      # Token usage, heatmap, trends

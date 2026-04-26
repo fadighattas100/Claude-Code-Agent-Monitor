@@ -136,34 +136,56 @@ flowchart LR
 
 <p align="center">
   <img src="images/dashboard.png" alt="Dashboard 概览" width="100%">
+  <br>
+  <em>📡 <strong>Dashboard</strong> — 总览统计、活跃 Agent 卡片与最近活动流</em>
 </p>
 
 <p align="center">
-  <img src="images/board.png" alt="看板概览" width="100%">
+  <img src="images/board.png" alt="Kanban 看板 — Agent 视图" width="100%">
+  <br>
+  <em>📋 <strong>Kanban 看板（Agent 视图）</strong> — Agent 按状态分布于 5 个列：闲置 / 已连接 / 工作中 / 已完成 / 错误</em>
+</p>
+
+<p align="center">
+  <img src="images/board-sessions.png" alt="Kanban 看板 — 会话视图" width="100%">
+  <br>
+  <em>🗂️ <strong>Kanban 看板（会话视图）</strong> — 会话按状态分组：活跃 / 已完成 / 错误 / 已废弃，可在同一页面切换</em>
 </p>
 
 <p align="center">
   <img src="images/sessions.png" alt="会话概览" width="100%">
+  <br>
+  <em>📂 <strong>会话</strong> — 包含费用、模型、Agent 数和时长的可搜索、可过滤、服务端分页的会话总表</em>
 </p>
 
 <p align="center">
   <img src="images/session.png" alt="会话详情概览" width="100%">
+  <br>
+  <em>🔬 <strong>会话详情</strong> — 完整的 Agent 层级树与按时间排序的事件时间线，支持多维过滤和工具感知的载荷渲染</em>
 </p>
 
 <p align="center">
   <img src="images/feed.png" alt="活动流概览" width="100%">
+  <br>
+  <em>📰 <strong>活动流</strong> — 实时事件日志，支持暂停 / 恢复、分组、多维过滤，每行带"会话 →"跳转按钮</em>
 </p>
 
 <p align="center">
   <img src="images/analytics.png" alt="分析概览" width="100%">
+  <br>
+  <em>📊 <strong>分析</strong> — 按模型的 Token 用量、工具使用频率、活动热力图与会话趋势，附在线 / 离线指示器</em>
 </p>
 
 <p align="center">
   <img src="images/workflows.png" alt="工作流概览" width="100%">
+  <br>
+  <em>🔀 <strong>工作流</strong> — Agent 编排 DAG、工具执行桑基图、协作网络，共 11 个交互式工作流智能模块</em>
 </p>
 
 <p align="center">
   <img src="images/settings.png" alt="设置概览" width="100%">
+  <br>
+  <em>⚙️ <strong>设置</strong> — 模型定价规则、Hook 安装状态、数据管理、通知偏好与系统信息</em>
 </p>
 
 侧边栏提供快速访问 Dashboard、看板、会话列表、活动流、分析、工作流和设置。每个页面旨在通过实时更新和丰富的可视化，为你提供对 Claude Code Agent 活动的深度洞察。

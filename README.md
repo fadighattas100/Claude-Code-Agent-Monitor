@@ -133,34 +133,56 @@ Comes with a sleek dark theme, responsive design, and intuitive navigation to ex
 
 <p align="center">
   <img src="images/dashboard.png" alt="Dashboard Overview" width="100%">
+  <br>
+  <em>📡 <strong>Dashboard</strong> — overview stats, active agent cards, and recent activity feed</em>
 </p>
 
 <p align="center">
-  <img src="images/board.png" alt="Board Overview" width="100%">
+  <img src="images/board.png" alt="Kanban Board — Agents view" width="100%">
+  <br>
+  <em>📋 <strong>Kanban Board (agents)</strong> — agents grouped by status across 5 columns: Idle / Connected / Working / Completed / Error</em>
+</p>
+
+<p align="center">
+  <img src="images/board-sessions.png" alt="Kanban Board — Sessions view" width="100%">
+  <br>
+  <em>🗂️ <strong>Kanban Board (sessions)</strong> — sessions grouped by status: Active / Completed / Error / Abandoned, toggleable from the same page</em>
 </p>
 
 <p align="center">
   <img src="images/sessions.png" alt="Sessions Overview" width="100%">
+  <br>
+  <em>📂 <strong>Sessions</strong> — searchable, filterable, server-paginated table of every recorded session with cost, model, agent count, and duration</em>
 </p>
 
 <p align="center">
   <img src="images/session.png" alt="Session Detail Overview" width="100%">
+  <br>
+  <em>🔬 <strong>Session Detail</strong> — full agent hierarchy tree and chronological event timeline with multi-dimension filters and tool-aware payload renderers</em>
 </p>
 
 <p align="center">
   <img src="images/feed.png" alt="Activity Feed Overview" width="100%">
+  <br>
+  <em>📰 <strong>Activity Feed</strong> — real-time event log with pause / resume, grouping, multi-dimension filters, and a "Session →" jump button per row</em>
 </p>
 
 <p align="center">
   <img src="images/analytics.png" alt="Analytics Overview" width="100%">
+  <br>
+  <em>📊 <strong>Analytics</strong> — token usage by model, tool frequency, activity heatmap, and session trends with live / offline indicator</em>
 </p>
 
 <p align="center">
-  <img src="images/workflows.png" alt="Analytics Overview" width="100%">
+  <img src="images/workflows.png" alt="Workflows Overview" width="100%">
+  <br>
+  <em>🔀 <strong>Workflows</strong> — agent orchestration DAGs, tool execution Sankey diagrams, collaboration networks, and 11 interactive sections of workflow intelligence</em>
 </p>
 
 <p align="center">
   <img src="images/settings.png" alt="Settings Overview" width="100%">
+  <br>
+  <em>⚙️ <strong>Settings</strong> — model pricing rules, hook installation status, data management, notification preferences, and system info</em>
 </p>
 
 The sidebar provides quick access to the Dashboard, Kanban Board, Sessions list, Activity Feed, Analytics, Workflows, and Settings. Each page is designed to give you deep insights into your Claude Code agent activity with real-time updates and rich visualizations.

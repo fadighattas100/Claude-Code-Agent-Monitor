@@ -134,34 +134,56 @@ flowchart LR
 
 <p align="center">
   <img src="images/dashboard.png" alt="Dashboard Overview" width="100%">
+  <br>
+  <em>📡 <strong>Dashboard</strong> — số liệu tổng hợp, thẻ Agent đang hoạt động và luồng hoạt động gần đây</em>
 </p>
 
 <p align="center">
-  <img src="images/board.png" alt="Board Overview" width="100%">
+  <img src="images/board.png" alt="Bảng Kanban — chế độ Agent" width="100%">
+  <br>
+  <em>📋 <strong>Bảng Kanban (Agent)</strong> — Agent xếp theo trạng thái trên 5 cột: Nhàn rỗi / Đã kết nối / Đang làm / Hoàn tất / Lỗi</em>
+</p>
+
+<p align="center">
+  <img src="images/board-sessions.png" alt="Bảng Kanban — chế độ Phiên" width="100%">
+  <br>
+  <em>🗂️ <strong>Bảng Kanban (Phiên)</strong> — phiên xếp theo trạng thái: Hoạt động / Hoàn tất / Lỗi / Bỏ dở, chuyển đổi trên cùng một trang</em>
 </p>
 
 <p align="center">
   <img src="images/sessions.png" alt="Sessions Overview" width="100%">
+  <br>
+  <em>📂 <strong>Phiên</strong> — bảng liệt kê toàn bộ phiên có tìm kiếm, bộ lọc và phân trang phía máy chủ, kèm chi phí, mô hình, số lượng Agent và thời lượng</em>
 </p>
 
 <p align="center">
   <img src="images/session.png" alt="Session Detail Overview" width="100%">
+  <br>
+  <em>🔬 <strong>Chi tiết phiên</strong> — cây phân cấp Agent đầy đủ và dòng thời gian sự kiện theo trình tự, có bộ lọc đa chiều và bộ render tải trọng nhận biết công cụ</em>
 </p>
 
 <p align="center">
   <img src="images/feed.png" alt="Activity Feed Overview" width="100%">
+  <br>
+  <em>📰 <strong>Luồng hoạt động</strong> — nhật ký sự kiện thời gian thực có tạm dừng / tiếp tục, gom nhóm, bộ lọc đa chiều và nút "Phiên →" trên mỗi dòng</em>
 </p>
 
 <p align="center">
   <img src="images/analytics.png" alt="Analytics Overview" width="100%">
+  <br>
+  <em>📊 <strong>Phân tích</strong> — lượng token theo mô hình, tần suất công cụ, bản đồ nhiệt hoạt động và xu hướng phiên kèm chỉ báo trực tuyến / ngoại tuyến</em>
 </p>
 
 <p align="center">
-  <img src="images/workflows.png" alt="Analytics Overview" width="100%">
+  <img src="images/workflows.png" alt="Workflows Overview" width="100%">
+  <br>
+  <em>🔀 <strong>Quy trình</strong> — DAG điều phối Agent, sơ đồ Sankey thi hành công cụ, mạng cộng tác và 11 mô-đun trí tuệ quy trình tương tác</em>
 </p>
 
 <p align="center">
   <img src="images/settings.png" alt="Settings Overview" width="100%">
+  <br>
+  <em>⚙️ <strong>Cài đặt</strong> — quy tắc định giá mô hình, trạng thái cài đặt Hook, quản lý dữ liệu, tuỳ chọn thông báo và thông tin hệ thống</em>
 </p>
 
 Thanh bên cung cấp quyền truy cập nhanh vào Trang tổng quan, Bảng Kanban, danh sách Phiên, Nguồn cấp dữ liệu hoạt động, Phân tích, Quy trình công việc và Cài đặt. Mỗi trang được thiết kế để cung cấp cho bạn những hiểu biết sâu sắc về hoạt động Agent Claude Code của bạn với các cập nhật theo thời gian thực và hình ảnh trực quan phong phú.

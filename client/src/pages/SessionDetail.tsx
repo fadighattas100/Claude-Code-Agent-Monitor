@@ -510,6 +510,11 @@ const [activeTab, setActiveTab] = useState<DetailTab>("agents");
                     rootAgents.push(a);
                   }
                 }
+                // Sort roots and children by started_at ascending (chronological order)
+                rootAgents.sort((a, b) => (a.started_at || "").localeCompare(b.started_at || ""));
+                for (const key of childrenByParent.keys()) {
+                  childrenByParent.get(key)!.sort((a, b) => (a.started_at || "").localeCompare(b.started_at || ""));
+                }
 
                 // Count all descendants (recursive) for collapsed badge
                 function countDescendants(id: string): number {

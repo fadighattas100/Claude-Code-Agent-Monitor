@@ -525,8 +525,11 @@
         overflow-wrap: anywhere;
       }
     </style>
-    <!-- Mermaid -->
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Mermaid: deferred (3.2 MB bundle) so it doesn't render-block first
+         paint. wiki/script.js is also deferred below; deferred scripts run
+         in document order, so the mermaid global is ready when script.js
+         calls mermaid.initialize. -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
   </head>
   <body>
     <div class="wiki-layout">
@@ -4512,7 +4515,7 @@ npm run install-hooks</code></pre>
     </div>
     <!-- /.wiki-layout -->
 
-    <script src="wiki/script.js?v=6"></script>
+    <script src="wiki/script.js?v=7" defer></script>
     <script>
       /* ─── Feature Carousel ──────────────────────────────────────────────── */
       (function () {

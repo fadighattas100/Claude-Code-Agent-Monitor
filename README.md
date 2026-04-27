@@ -156,9 +156,21 @@ Comes with a sleek dark theme, responsive design, and intuitive navigation to ex
 </p>
 
 <p align="center">
-  <img src="images/session.png" alt="Session Detail Overview" width="100%">
+  <img src="images/session-agents.png" alt="Session Detail — Agents tab" width="100%">
   <br>
-  <em>🔬 <strong>Session Detail</strong> — full agent hierarchy tree and chronological event timeline with multi-dimension filters and tool-aware payload renderers</em>
+  <em>🤖 <strong>Session Detail · Agents</strong> — real-time overview tiles (events, tool calls, subagents, compactions, errors, duration), top-tool usage bars, subagent type breakdown, token flow, and the agent hierarchy tree</em>
+</p>
+
+<p align="center">
+  <img src="images/session-conversation.png" alt="Session Detail — Conversation tab" width="100%">
+  <br>
+  <em>💬 <strong>Session Detail · Conversation</strong> — live transcript viewer with markdown rendering, syntax-highlighted code blocks (line numbers + copy), and per-tool styled tool calls</em>
+</p>
+
+<p align="center">
+  <img src="images/session-timeline.png" alt="Session Detail — Timeline tab" width="100%">
+  <br>
+  <em>🔬 <strong>Session Detail · Timeline</strong> — chronological event timeline with multi-dimension filters, Pre/Post grouping by `tool_use_id`, and tool-aware payload renderers</em>
 </p>
 
 <p align="center">

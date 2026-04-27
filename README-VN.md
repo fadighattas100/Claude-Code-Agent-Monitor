@@ -157,9 +157,21 @@ flowchart LR
 </p>
 
 <p align="center">
-  <img src="images/session.png" alt="Session Detail Overview" width="100%">
+  <img src="images/session-agents.png" alt="Chi tiết phiên — tab Agent" width="100%">
   <br>
-  <em>🔬 <strong>Chi tiết phiên</strong> — cây phân cấp Agent đầy đủ và dòng thời gian sự kiện theo trình tự, có bộ lọc đa chiều và bộ render tải trọng nhận biết công cụ</em>
+  <em>🤖 <strong>Chi tiết phiên · Agent</strong> — bảng tổng quan thời gian thực (sự kiện, lượt gọi công cụ, subagent, lần nén, lỗi, thời lượng), thanh sử dụng top công cụ, phân tích theo loại subagent, dòng chảy token và cây phân cấp Agent</em>
+</p>
+
+<p align="center">
+  <img src="images/session-conversation.png" alt="Chi tiết phiên — tab Conversation" width="100%">
+  <br>
+  <em>💬 <strong>Chi tiết phiên · Conversation</strong> — trình xem bản ghi trực tiếp với render markdown, khối code có syntax highlight (số dòng + nút sao chép) và các khối tool call có style theo từng công cụ</em>
+</p>
+
+<p align="center">
+  <img src="images/session-timeline.png" alt="Chi tiết phiên — tab Timeline" width="100%">
+  <br>
+  <em>🔬 <strong>Chi tiết phiên · Timeline</strong> — dòng thời gian sự kiện theo trình tự, có bộ lọc đa chiều, gom nhóm Pre/Post theo `tool_use_id`, và bộ render tải trọng nhận biết công cụ</em>
 </p>
 
 <p align="center">

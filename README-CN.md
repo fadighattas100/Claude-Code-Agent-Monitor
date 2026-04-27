@@ -159,9 +159,21 @@ flowchart LR
 </p>
 
 <p align="center">
-  <img src="images/session.png" alt="会话详情概览" width="100%">
+  <img src="images/session-agents.png" alt="会话详情 — Agent 标签页" width="100%">
   <br>
-  <em>🔬 <strong>会话详情</strong> — 完整的 Agent 层级树与按时间排序的事件时间线，支持多维过滤和工具感知的载荷渲染</em>
+  <em>🤖 <strong>会话详情 · Agent</strong> — 实时概览卡片（事件、工具调用、子 Agent、压缩、错误、时长）、Top 工具用量条形图、子 Agent 类型分布、Token 流和 Agent 层级树</em>
+</p>
+
+<p align="center">
+  <img src="images/session-conversation.png" alt="会话详情 — Conversation 标签页" width="100%">
+  <br>
+  <em>💬 <strong>会话详情 · Conversation</strong> — 实时对话查看器，支持 markdown 渲染、带行号和复制按钮的语法高亮代码块，以及按工具样式化的工具调用块</em>
+</p>
+
+<p align="center">
+  <img src="images/session-timeline.png" alt="会话详情 — Timeline 标签页" width="100%">
+  <br>
+  <em>🔬 <strong>会话详情 · Timeline</strong> — 按时间排序的事件时间线，支持多维过滤、按 `tool_use_id` 进行 Pre/Post 分组，以及工具感知的载荷渲染</em>
 </p>
 
 <p align="center">

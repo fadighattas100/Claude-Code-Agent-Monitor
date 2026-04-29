@@ -5,6 +5,7 @@
  * from the hook payload as a single row. For `tool_input` and `tool_response`
  * on recognised tools, rows use tool-aware renderers (terminal blocks, diffs,
  * line-numbered code, match lists) instead of the generic JSON code view.
+ * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
 import { useMemo } from "react";
@@ -115,9 +116,7 @@ export function EventDetail({ event, agentInfoById, sessionNameById }: EventDeta
   const summary = useMemo(() => buildEventSummary(event), [event]);
 
   const rows = useMemo<Row[]>(() => {
-    const result: Row[] = [
-      { key: "event_id", label: t("eventDetail.eventId"), value: event.id },
-    ];
+    const result: Row[] = [{ key: "event_id", label: t("eventDetail.eventId"), value: event.id }];
     // Surface the session name above the raw id when we can resolve it —
     // makes "f2f3c568-..." recognisable as e.g. "AI-Assistant-Chatbot
     // (enumerated-wandering-jellyfish)" without losing the id below.

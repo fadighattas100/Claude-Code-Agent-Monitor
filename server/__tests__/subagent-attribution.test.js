@@ -17,6 +17,8 @@
  *   4. When a live subagent (created via PreToolUse "Agent" hook) matches
  *      the JSONL by type + start time, events attach to the live row
  *      instead of creating a duplicate JSONL-keyed row.
+ *
+ * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
 const { describe, it, before, after } = require("node:test");
@@ -25,10 +27,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-const TEST_DB = path.join(
-  os.tmpdir(),
-  `dashboard-subagent-test-${Date.now()}-${process.pid}.db`
-);
+const TEST_DB = path.join(os.tmpdir(), `dashboard-subagent-test-${Date.now()}-${process.pid}.db`);
 process.env.DASHBOARD_DB_PATH = TEST_DB;
 
 const dbModule = require("../db");
@@ -147,10 +146,7 @@ function writeMetaJson(filePath, agentType) {
 
 describe("parseSubagentFile — tool event extraction", () => {
   it("pairs tool_use with tool_result and returns ordered toolEvents", async () => {
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `agent-${Date.now()}-${process.pid}.jsonl`
-    );
+    const tmpFile = path.join(os.tmpdir(), `agent-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, buildSubagentLines("coder"));
     writeMetaJson(tmpFile.replace(/\.jsonl$/, ".meta.json"), "coder");
 
@@ -183,19 +179,14 @@ describe("parseSubagentFile — tool event extraction", () => {
   });
 
   it("emits a tool_use even when no matching tool_result exists yet (live tail)", async () => {
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `agent-tail-${Date.now()}-${process.pid}.jsonl`
-    );
+    const tmpFile = path.join(os.tmpdir(), `agent-tail-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, [
       {
         type: "assistant",
         timestamp: "2026-04-28T10:00:01.000Z",
         message: {
           model: "claude-opus-4-7",
-          content: [
-            { type: "tool_use", id: "toolu_pending", name: "Read", input: {} },
-          ],
+          content: [{ type: "tool_use", id: "toolu_pending", name: "Read", input: {} }],
         },
       },
     ]);
@@ -234,21 +225,13 @@ describe("importSubagentFromJsonl — event attribution", () => {
   });
 
   it("creates one subagent row and per-call PreToolUse + PostToolUse events", async () => {
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `agent-attr-${Date.now()}-${process.pid}.jsonl`
-    );
+    const tmpFile = path.join(os.tmpdir(), `agent-attr-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, buildSubagentLines("coder"));
     writeMetaJson(tmpFile.replace(/\.jsonl$/, ".meta.json"), "coder");
 
     try {
       const data = await importHistory.parseSubagentFile(tmpFile);
-      const created = importHistory.importSubagentFromJsonl(
-        dbModule,
-        sessionId,
-        mainAgentId,
-        data
-      );
+      const created = importHistory.importSubagentFromJsonl(dbModule, sessionId, mainAgentId, data);
       assert.ok(created > 0, "should create at least the agent + spawn + 4 events");
 
       const subId = `${sessionId}-jsonl-${data.agentId}`;
@@ -261,19 +244,10 @@ describe("importSubagentFromJsonl — event attribution", () => {
           "SELECT event_type, tool_name FROM events WHERE agent_id = ? AND event_type IN ('PreToolUse', 'PostToolUse') ORDER BY id ASC"
         )
         .all(subId);
-      assert.equal(
-        toolEvents.length,
-        4,
-        "expected 2 Pre + 2 Post events under subagent's id"
-      );
+      assert.equal(toolEvents.length, 4, "expected 2 Pre + 2 Post events under subagent's id");
       assert.deepEqual(
         toolEvents.map((e) => `${e.event_type}:${e.tool_name}`),
-        [
-          "PreToolUse:Read",
-          "PostToolUse:Read",
-          "PreToolUse:Bash",
-          "PostToolUse:Bash",
-        ]
+        ["PreToolUse:Read", "PostToolUse:Read", "PreToolUse:Bash", "PostToolUse:Bash"]
       );
 
       // Spawn marker lives under the main agent so the parent chain shows
@@ -295,10 +269,7 @@ describe("importSubagentFromJsonl — event attribution", () => {
   });
 
   it("is idempotent — re-running does not duplicate events", async () => {
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `agent-idem-${Date.now()}-${process.pid}.jsonl`
-    );
+    const tmpFile = path.join(os.tmpdir(), `agent-idem-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, buildSubagentLines("reviewer"));
     writeMetaJson(tmpFile.replace(/\.jsonl$/, ".meta.json"), "reviewer");
 
@@ -306,15 +277,11 @@ describe("importSubagentFromJsonl — event attribution", () => {
       const data = await importHistory.parseSubagentFile(tmpFile);
       importHistory.importSubagentFromJsonl(dbModule, sessionId, mainAgentId, data);
       const subId = `${sessionId}-jsonl-${data.agentId}`;
-      const before = db
-        .prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?")
-        .get(subId).c;
+      const before = db.prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?").get(subId).c;
 
       // Second run — should be a no-op.
       importHistory.importSubagentFromJsonl(dbModule, sessionId, mainAgentId, data);
-      const after = db
-        .prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?")
-        .get(subId).c;
+      const after = db.prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?").get(subId).c;
 
       assert.equal(after, before, "idempotent re-import — no new rows");
     } finally {
@@ -342,14 +309,14 @@ describe("importSubagentFromJsonl — event attribution", () => {
       mainAgentId,
       null
     );
-    db.prepare(
-      "UPDATE agents SET started_at = ?, ended_at = ?, updated_at = ? WHERE id = ?"
-    ).run(startedAt, startedAt, startedAt, liveSubId);
-
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `agent-live-${Date.now()}-${process.pid}.jsonl`
+    db.prepare("UPDATE agents SET started_at = ?, ended_at = ?, updated_at = ? WHERE id = ?").run(
+      startedAt,
+      startedAt,
+      startedAt,
+      liveSubId
     );
+
+    const tmpFile = path.join(os.tmpdir(), `agent-live-${Date.now()}-${process.pid}.jsonl`);
     const lines = buildSubagentLines("live-coder");
     writeSubagentJsonl(tmpFile, lines);
     writeMetaJson(tmpFile.replace(/\.jsonl$/, ".meta.json"), "live-coder");
@@ -370,10 +337,7 @@ describe("importSubagentFromJsonl — event attribution", () => {
           "SELECT 1 FROM events WHERE agent_id = ? AND event_type IN ('PreToolUse', 'PostToolUse')"
         )
         .all(liveSubId);
-      assert.ok(
-        eventsUnderLive.length >= 4,
-        "events should attach to the live subagent's id"
-      );
+      assert.ok(eventsUnderLive.length >= 4, "events should attach to the live subagent's id");
     } finally {
       fs.unlinkSync(tmpFile);
       try {

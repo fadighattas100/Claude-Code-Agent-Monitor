@@ -3,6 +3,8 @@
  * renders nested subagent attribution as "main › coder › explorer", so
  * tool events triggered by deeply nested subagents identify their full
  * lineage instead of collapsing to just the leaf agent.
+ *
+ * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
 import { describe, it, expect } from "vitest";
@@ -15,20 +17,14 @@ function makeMap(entries: Array<[string, AgentInfo]>): Map<string, AgentInfo> {
 describe("agentOriginLabel — parent chain walk", () => {
   it("returns 'main' for the main agent itself", () => {
     const map = makeMap([
-      [
-        "sess-main",
-        { type: "main", subagent_type: null, name: "Main", parent_agent_id: null },
-      ],
+      ["sess-main", { type: "main", subagent_type: null, name: "Main", parent_agent_id: null }],
     ]);
     expect(agentOriginLabel("sess-main", map)).toBe("main");
   });
 
   it("renders 'main › coder' for a direct child of main", () => {
     const map = makeMap([
-      [
-        "sess-main",
-        { type: "main", subagent_type: null, name: "Main", parent_agent_id: null },
-      ],
+      ["sess-main", { type: "main", subagent_type: null, name: "Main", parent_agent_id: null }],
       [
         "sub-coder",
         {
@@ -44,10 +40,7 @@ describe("agentOriginLabel — parent chain walk", () => {
 
   it("renders 'main › coder › explorer' for a 2-deep subagent", () => {
     const map = makeMap([
-      [
-        "sess-main",
-        { type: "main", subagent_type: null, name: "Main", parent_agent_id: null },
-      ],
+      ["sess-main", { type: "main", subagent_type: null, name: "Main", parent_agent_id: null }],
       [
         "sub-coder",
         {
@@ -82,10 +75,7 @@ describe("agentOriginLabel — parent chain walk", () => {
 
   it("uses subagent name when subagent_type is null", () => {
     const map = makeMap([
-      [
-        "sess-main",
-        { type: "main", subagent_type: null, name: "Main", parent_agent_id: null },
-      ],
+      ["sess-main", { type: "main", subagent_type: null, name: "Main", parent_agent_id: null }],
       [
         "sub-1",
         {

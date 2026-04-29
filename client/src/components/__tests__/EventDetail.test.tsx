@@ -5,6 +5,7 @@
  * follow, scalars render inline, objects/arrays/multiline strings render in a
  * terminal-styled code view, and JSON parse failures fall back to showing the
  * raw data as a single row.
+ * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
 import { describe, it, expect } from "vitest";

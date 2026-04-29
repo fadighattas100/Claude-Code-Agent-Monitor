@@ -46,6 +46,51 @@ function agentDisplayLabel(info: AgentInfo): string | null {
 // `event_id` defensively in case a future hook payload surfaces them.
 const DUPLICATE_KEYS = new Set(["id", "event_id", "session_id", "agent_id"]);
 
+/** Map raw payload keys to localized i18n labels under common:eventDetail.
+ *  Anything not in this map falls back to humanizeKey() so users still see
+ *  a tidy "Tool Name" rather than "tool_name". */
+const PAYLOAD_LABEL_KEYS: Record<string, string> = {
+  tool_name: "eventDetail.toolName",
+  tool_use_id: "eventDetail.toolUseId",
+  tool_input: "eventDetail.toolInput",
+  tool_response: "eventDetail.toolResponse",
+  is_error: "eventDetail.isError",
+  cwd: "eventDetail.cwd",
+  permission_mode: "eventDetail.permissionMode",
+  transcript_path: "eventDetail.transcriptPath",
+  agent_transcript_path: "eventDetail.agentTranscriptPath",
+  hook_event_name: "eventDetail.hookEventName",
+  stop_reason: "eventDetail.stopReason",
+  stop_hook_active: "eventDetail.stopHookActive",
+  subagent_type: "eventDetail.subagentType",
+  agent_type: "eventDetail.agentType",
+  notification_type: "eventDetail.notificationType",
+  message: "eventDetail.message",
+  prompt: "eventDetail.prompt",
+  model: "eventDetail.model",
+  reason: "eventDetail.reason",
+  source: "eventDetail.source",
+  imported: "eventDetail.imported",
+  type: "eventDetail.type",
+  timestamp: "eventDetail.timestamp",
+  uuid: "eventDetail.uuid",
+  duration_ms: "eventDetail.durationMs",
+  durationMs: "eventDetail.durationMs",
+  compaction_number: "eventDetail.compactionNumber",
+  total_compactions: "eventDetail.totalCompactions",
+  last_assistant_message: "eventDetail.lastAssistantMessage",
+};
+
+/** Convert `snake_case` / `camelCase` to a human-readable Title Case label
+ *  for any payload key not in PAYLOAD_LABEL_KEYS. Defensive fallback so
+ *  every row reads naturally even when a new hook field appears. */
+function humanizeKey(key: string): string {
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 type Row = { key: string; label: string; value: unknown };
 
 export function EventDetail({ event, agentInfoById }: EventDetailProps) {
@@ -86,7 +131,12 @@ export function EventDetail({ event, agentInfoById }: EventDetailProps) {
       ? Object.entries(parsed).filter(([k]) => !DUPLICATE_KEYS.has(k))
       : [];
     for (const [k, v] of payloadEntries) {
-      result.push({ key: k, label: k, value: v });
+      // Known keys → localized label; unknown keys → humanized fallback
+      // (snake_case → "Snake Case") so the panel never surfaces raw JSON
+      // identifiers in the row labels.
+      const i18nKey = PAYLOAD_LABEL_KEYS[k];
+      const label = i18nKey ? t(i18nKey) : humanizeKey(k);
+      result.push({ key: k, label, value: v });
     }
 
     // If JSON parse failed, show the raw data as a single row using the
@@ -112,7 +162,13 @@ export function EventDetail({ event, agentInfoById }: EventDetailProps) {
       )}
       <div className="space-y-2">
         {rows.map((row) => (
-          <FieldRow key={row.key} label={row.label} value={row.value} toolName={event.tool_name} />
+          <FieldRow
+            key={row.key}
+            rowKey={row.key}
+            label={row.label}
+            value={row.value}
+            toolName={event.tool_name}
+          />
         ))}
       </div>
     </div>
@@ -172,10 +228,14 @@ function SummaryBlock({
 // ───────────────────────── Field row ─────────────────────────
 
 function FieldRow({
+  rowKey,
   label,
   value,
   toolName,
 }: {
+  /** Raw payload key — used for tool-aware routing decisions so the renderer
+   *  doesn't break when the user-visible label is translated. */
+  rowKey: string;
   label: string;
   value: unknown;
   toolName: string | null;
@@ -183,7 +243,7 @@ function FieldRow({
   // Route tool_input / tool_response through tool-aware renderers when the
   // tool is known. Unknown tools (or unknown shape for known tools) fall back
   // to the generic CodeView below.
-  if (label === "tool_input") {
+  if (rowKey === "tool_input") {
     const view = ToolInputView({ toolName, input: value });
     if (view) {
       return (
@@ -194,7 +254,7 @@ function FieldRow({
       );
     }
   }
-  if (label === "tool_response") {
+  if (rowKey === "tool_response") {
     const view = ToolResponseView({ toolName, response: value });
     if (view) {
       return (

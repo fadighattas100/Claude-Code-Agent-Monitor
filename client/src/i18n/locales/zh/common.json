@@ -82,6 +82,7 @@
     "eventId": "事件 ID",
     "sessionId": "会话 ID",
     "agentId": "Agent ID",
+    "agent": "Agent",
     "cwd": "工作目录",
     "permissionMode": "权限模式",
     "toolUseId": "工具使用 ID",

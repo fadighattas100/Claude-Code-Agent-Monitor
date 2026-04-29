@@ -868,7 +868,7 @@ export function SessionDetail() {
                               </span>
                             )}
                           </button>
-                          {isOpen && <EventDetail event={event} />}
+                          {isOpen && <EventDetail event={event} agentInfoById={agentInfoById} />}
                         </div>
                       );
                     })}

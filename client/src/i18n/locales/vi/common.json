@@ -82,6 +82,7 @@
     "eventId": "ID sự kiện",
     "sessionId": "ID phiên",
     "agentId": "ID Agent",
+    "agent": "Agent",
     "cwd": "Thư mục làm việc",
     "permissionMode": "Chế độ quyền",
     "toolUseId": "ID lượt dùng công cụ",

@@ -10,13 +10,36 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { DashboardEvent } from "../lib/types";
+import type { AgentInfo } from "../lib/event-grouping";
 import { buildEventSummary } from "../lib/event-summary";
 import { CopyButton } from "./event-views/primitives";
 import { ToolInputView, ToolResponseView } from "./event-views/tool-views";
 
 type EventDetailProps = {
   event: DashboardEvent;
+  /** Optional lookup so the panel can surface a human-friendly agent name
+   *  (e.g. "technical-researcher · Subagent 14") next to the raw agent_id.
+   *  Callers that already have the session's agent map (EventGroupRow,
+   *  SessionDetail) should pass it; older callers can omit it and the panel
+   *  falls back to id-only display. */
+  agentInfoById?: Map<string, AgentInfo>;
 };
+
+/** Human-friendly label for an agent — `subagent_type · name` when both add
+ *  signal, else whichever single field is present. Returns null for main
+ *  agents whose name is just the session label (the agent_id row already
+ *  carries the structural marker `<session>-main`, no need to repeat it). */
+function agentDisplayLabel(info: AgentInfo): string | null {
+  if (info.type === "main") {
+    return info.name && info.name.trim().length > 0 ? info.name : null;
+  }
+  const type = info.subagent_type?.trim();
+  const name = info.name?.trim();
+  if (type && name && name !== type) return `${type} · ${name}`;
+  if (type) return type;
+  if (name) return name;
+  return null;
+}
 
 // Keys from the payload that are already rendered from event-level fields —
 // skip them to avoid showing the same value twice. Includes `id` and
@@ -25,7 +48,7 @@ const DUPLICATE_KEYS = new Set(["id", "event_id", "session_id", "agent_id"]);
 
 type Row = { key: string; label: string; value: unknown };
 
-export function EventDetail({ event }: EventDetailProps) {
+export function EventDetail({ event, agentInfoById }: EventDetailProps) {
   const { t } = useTranslation("common");
 
   const parsed = useMemo<Record<string, unknown> | null>(() => {
@@ -48,6 +71,14 @@ export function EventDetail({ event }: EventDetailProps) {
       { key: "session_id", label: t("eventDetail.sessionId"), value: event.session_id },
     ];
     if (event.agent_id) {
+      // Surface the agent name above the raw id when we can resolve it —
+      // makes "f2f3c568-...-subagent-14" recognisable as e.g.
+      // "technical-researcher · Subagent 14" without losing the id below.
+      const info = agentInfoById?.get(event.agent_id);
+      const displayName = info ? agentDisplayLabel(info) : null;
+      if (displayName) {
+        result.push({ key: "agent_name", label: t("eventDetail.agent"), value: displayName });
+      }
       result.push({ key: "agent_id", label: t("eventDetail.agentId"), value: event.agent_id });
     }
 
@@ -65,7 +96,7 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     return result;
-  }, [event.id, event.session_id, event.agent_id, event.data, parsed, t]);
+  }, [event.id, event.session_id, event.agent_id, event.data, parsed, agentInfoById, t]);
 
   const hasToolInput = parsed != null && "tool_input" in parsed;
   const hasToolResponse = parsed != null && "tool_response" in parsed;

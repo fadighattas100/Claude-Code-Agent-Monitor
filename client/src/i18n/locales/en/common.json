@@ -82,6 +82,7 @@
     "eventId": "Event ID",
     "sessionId": "Session ID",
     "agentId": "Agent ID",
+    "agent": "Agent",
     "cwd": "Working directory",
     "permissionMode": "Permission mode",
     "toolUseId": "Tool use ID",

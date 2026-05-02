@@ -1035,17 +1035,30 @@
                   <p>
                     D3.js-powered agent orchestration DAG showing spawn patterns across sessions,
                     tool execution Sankey diagram mapping tool-to-tool transitions, and a directed
-                    agent pipeline graph revealing which agent types run after which with frequency labels.
+                    agent pipeline graph revealing which agent types run after which with frequency
+                    labels. Every chart's title carries an <code>i</code> icon that opens a
+                    structured "What this shows / How to read it / Why it matters" popover, and
+                    hovering nodes, edges, and bars surfaces multi-section tooltips with deterministic,
+                    value-dependent interpretations — share-of-source / share-of-target percentages,
+                    success-rate health buckets, model-family descriptions, and timing patterns. All
+                    translated to en/vi/zh.
                   </p>
                 </div>
                 <div class="feature-card">
                   <div class="feature-icon ic-indigo">📊</div>
                   <h3>Workflow Analytics</h3>
                   <p>
-                    Subagent effectiveness scorecards with success rings and day-of-week activity
-                    charts. Auto-detected workflow patterns, model delegation flow, error propagation
-                    with horizontal bars and API error cards, concurrency swim-lanes, and complexity
-                    bubble charts. Status filter (Active/Completed/All) filters all sections.
+                    Subagent effectiveness scorecards with success rings and day-of-week sparklines;
+                    sparkline tooltips render through a <code>createPortal</code> to escape the card's
+                    <code>overflow:hidden</code> and stay clamped inside the viewport, so they never
+                    get clipped on Sun/Sat/Mon/Fri. Auto-detected workflow patterns expand in place
+                    on click into a detail panel with the full step chain, stats grid, deterministic
+                    narrative (loop detection, frequency bucket), and a practical suggestion. Plus
+                    model delegation flow, error propagation with horizontal bars and API error cards,
+                    concurrency swim-lanes, and complexity bubble charts. Each of the six headline
+                    stat cards has a bottom-right info popover explaining how the metric is calculated
+                    and what its current value means in plain language. Status filter (Active /
+                    Completed / All) filters all sections.
                   </p>
                 </div>
                 <div class="feature-card">
@@ -3730,7 +3743,14 @@ ccam-export all --output backup.json</code></pre>
               <p>
                 Editable table of per-model pricing rules. Each Claude model variant has its own
                 explicit pattern (e.g., <code>claude-opus-4-6%</code>). Rates cover input, output,
-                cache read, and cache write tokens. Reset to defaults or add custom models.
+                cache read, and cache write tokens. Reset to defaults or add custom models. The
+                section header carries an info popover (the <code>i</code> icon) that explains how
+                rule lookup works (first matching pattern wins), the SQL-style <code>%</code>
+                wildcard syntax with concrete examples (<code>claude-opus-4-7%</code>,
+                <code>claude-%-haiku</code>, exact ids), and reminds the user that prices must be
+                updated manually when Anthropic publishes new rates — already-stored sessions keep
+                the price applied at ingest time. The CLAUDE_HOME panel and Import History flow are
+                fully i18n-driven across en/vi/zh.
               </p>
             </div>
             <div class="feature-card">

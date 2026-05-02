@@ -80,6 +80,390 @@
     />
     <link rel="stylesheet" href="wiki/style.css?v=1" />
 
+    <!-- Global page styles -->
+    <style>
+      :root {
+        --sidebar-expanded: 260px;
+        --sidebar-collapsed: 56px;
+      }
+      body {
+        --sidebar-current: var(--sidebar-expanded);
+        overflow-x: hidden;
+      }
+      body.sidebar-collapsed {
+        --sidebar-current: var(--sidebar-collapsed);
+      }
+      .sidebar {
+        display: flex !important;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--sidebar-current);
+        overflow-x: hidden;
+        transition: width 0.2s ease;
+      }
+      .main-content {
+        margin-left: var(--sidebar-current) !important;
+        width: calc(100vw - var(--sidebar-current)) !important;
+        max-width: calc(100vw - var(--sidebar-current)) !important;
+        overflow-x: clip;
+        transition:
+          margin-left 0.2s ease,
+          width 0.2s ease;
+      }
+      .diagram-wrap .mermaid {
+        display: block;
+        width: 100%;
+      }
+      .diagram-wrap .mermaid svg {
+        width: 118%;
+        max-width: 118%;
+        height: auto;
+      }
+      .sidebar-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .sidebar-logo .logo-sub {
+        margin-top: 7px;
+      }
+      .sidebar-toggle {
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--border, #252538);
+        border-radius: 7px;
+        background: var(--bg-card, #1a1a2b);
+        color: var(--text, #e2e2f0);
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      body.sidebar-collapsed .sidebar .logo-text,
+      body.sidebar-collapsed .sidebar .search-wrap,
+      body.sidebar-collapsed .sidebar .nav-section,
+      body.sidebar-collapsed .sidebar .sidebar-footer {
+        display: none;
+      }
+      body.sidebar-collapsed .sidebar .sidebar-header {
+        padding: 12px 8px;
+      }
+      body.sidebar-collapsed .sidebar .sidebar-logo {
+        justify-content: center;
+        margin-bottom: 0;
+      }
+      body.sidebar-collapsed .sidebar .sidebar-topbar {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      body.sidebar-collapsed .sidebar .sidebar-nav {
+        padding-top: 8px;
+      }
+      body.sidebar-collapsed .sidebar .nav-link {
+        justify-content: center;
+        gap: 0;
+        padding-left: 0;
+        padding-right: 0;
+        font-size: 0;
+      }
+      body.sidebar-collapsed .sidebar .nav-link .nav-icon {
+        width: auto;
+        font-size: 13px;
+      }
+      .ccam-side-tip {
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: var(--bg-card, #1a1a2b);
+        color: var(--text, #e2e2f0);
+        border: 1px solid var(--border, #252538);
+        border-radius: 7px;
+        padding: 6px 10px;
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35),
+          0 0 0 1px rgba(99, 102, 241, 0.18);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-6px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 10000;
+      }
+      .ccam-side-tip.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .ccam-side-tip::before {
+        content: "";
+        position: absolute;
+        left: -6px;
+        top: 50%;
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-right: 6px solid var(--border, #252538);
+        transform: translateY(-50%);
+      }
+      .sidebar-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+        z-index: 180;
+      }
+      .wiki-footer.footer-enhanced {
+        margin-top: 84px;
+        padding: 24px;
+        border: 1px solid var(--border, #252538);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.06));
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr;
+        gap: 22px;
+        align-items: start;
+      }
+      .footer-brand-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text, #e2e2f0);
+        margin-bottom: 6px;
+      }
+      .footer-note {
+        font-size: 13px;
+        color: var(--text-muted, #8888aa);
+        margin-bottom: 12px;
+        line-height: 1.55;
+      }
+      .footer-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .footer-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--text-muted, #8888aa);
+        border: 1px solid var(--border, #252538);
+        background: rgba(18, 18, 30, 0.75);
+      }
+      .footer-col-title {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim, #55556a);
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+      .footer-col-links {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .footer-col-links a {
+        color: var(--text-muted, #8888aa);
+        text-decoration: none;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      .footer-col-links a:hover {
+        color: var(--text, #e2e2f0);
+      }
+      #feature-carousel .carousel-btn .carousel-arrow {
+        display: block;
+        line-height: 1;
+      }
+      .star-history-link {
+        display: block;
+        line-height: 0;
+        margin: 0;
+        border-radius: 0;
+        overflow: hidden;
+        border: none;
+        background: transparent;
+      }
+      .star-history-card {
+        border-color: rgba(129, 140, 248, 0.32);
+        background: linear-gradient(180deg, rgba(22, 22, 34, 0.98), rgba(13, 13, 23, 0.98));
+      }
+      .star-history-card picture {
+        display: block;
+      }
+      .star-history-card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: auto;
+        object-fit: contain;
+        border-bottom: none;
+      }
+      .star-history-card:hover img {
+        transform: none;
+      }
+      .star-history-card .screenshot-caption {
+        margin: 0;
+        border-top: 1px solid rgba(129, 140, 248, 0.2);
+        background: rgba(99, 102, 241, 0.08);
+      }
+      .star-history-card .star-history-caption-link {
+        color: #c7d2fe;
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .star-history-card .star-history-caption-link:hover {
+        color: #e0e7ff;
+      }
+      .star-history-intro {
+        margin-bottom: 16px;
+      }
+      @media (max-width: 700px) {
+        #feature-carousel .feature-card {
+          min-height: 220px;
+          padding: 18px;
+        }
+        #feature-carousel .feature-icon {
+          width: 36px;
+          height: 36px;
+          font-size: 17px;
+          margin-bottom: 10px;
+        }
+        #feature-carousel .feature-card h3 {
+          font-size: 13.5px;
+          margin-bottom: 6px;
+        }
+        #feature-carousel .feature-card p {
+          font-size: 12.5px;
+          line-height: 1.55;
+          max-height: 13.95em;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 9;
+          -webkit-box-orient: vertical;
+        }
+        #feature-carousel .carousel-controls {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 12px;
+          flex-wrap: nowrap;
+        }
+        #feature-carousel .carousel-prev,
+        #feature-carousel .carousel-next {
+          flex: 0 0 auto;
+        }
+        #feature-carousel .carousel-dots {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: calc(100% - 84px);
+          justify-content: center;
+          flex-wrap: wrap;
+          row-gap: 6px;
+          column-gap: 6px;
+        }
+        #feature-carousel .carousel-dot {
+          width: 7px;
+          height: 7px;
+        }
+        #feature-carousel .carousel-dot.active {
+          transform: scale(1.2);
+        }
+        #feature-carousel .carousel-btn {
+          width: 34px;
+          min-width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          padding: 0;
+          gap: 0;
+          font-size: 18px;
+          color: var(--text-muted, #8888aa);
+          border-color: var(--border, #252538);
+          background: var(--bg-card, #1a1a2b);
+          box-shadow: none;
+        }
+        #feature-carousel .carousel-btn:focus-visible {
+          outline: 2px solid rgba(129, 140, 248, 0.75);
+          outline-offset: 2px;
+        }
+        .star-history-link {
+          margin: 0;
+          border-radius: 0;
+        }
+      }
+      @media (max-width: 480px) {
+        #feature-carousel .feature-card {
+          min-height: 200px;
+          padding: 16px;
+        }
+        #feature-carousel .feature-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 15px;
+          margin-bottom: 8px;
+        }
+        #feature-carousel .feature-card h3 {
+          font-size: 13px;
+          margin-bottom: 5px;
+        }
+        #feature-carousel .feature-card p {
+          font-size: 12px;
+          line-height: 1.5;
+          max-height: 12em;
+          -webkit-line-clamp: 8;
+        }
+      }
+      @media (max-width: 1400px) {
+        .sidebar {
+          display: flex !important;
+          z-index: 200;
+        }
+        .main-content {
+          display: block;
+          padding: 32px 16px;
+          margin-left: var(--sidebar-collapsed) !important;
+          width: calc(100vw - var(--sidebar-collapsed)) !important;
+          max-width: calc(100vw - var(--sidebar-collapsed)) !important;
+        }
+        .diagram-wrap .mermaid svg {
+          width: 100%;
+          max-width: 100%;
+        }
+        body:not(.sidebar-collapsed) .sidebar {
+          width: min(86vw, 320px);
+          box-shadow: 10px 0 28px rgba(0, 0, 0, 0.4);
+        }
+        body:not(.sidebar-collapsed) .sidebar-scrim {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .wiki-footer.footer-enhanced {
+          grid-template-columns: 1fr;
+          gap: 16px;
+          padding: 20px;
+        }
+      }
+      #update-notifier .feature-card code,
+      #update-notifier .api-table code {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+    </style>
+
     <!-- Mermaid: deferred (3.2 MB bundle) so it doesn't render-block first
          paint. wiki/script.js is also deferred below; deferred scripts run
          in document order, so the mermaid global is ready when script.js

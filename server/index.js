@@ -220,7 +220,8 @@ if (require.main === module) {
       })
       .then(() => backfillCompactions(dbModule))
       .then(({ backfilled }) => {
-        if (backfilled > 0) console.log(`Backfilled ${backfilled} compaction events from ~/.claude/`);
+        if (backfilled > 0)
+          console.log(`Backfilled ${backfilled} compaction events from ~/.claude/`);
       })
       .catch(() => {});
   }

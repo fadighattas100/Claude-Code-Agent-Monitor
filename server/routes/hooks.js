@@ -197,9 +197,10 @@ const processEvent = db.transaction((hookType, data) => {
       //
       // Heuristic: main is waiting + working subagents exist → subagent is the actor.
       //            main is working/waiting with no subagents → main is the actor.
-      const deepestWorking = (mainAgent && mainAgent.status === "waiting")
-        ? stmts.findDeepestWorkingAgent.get(sessionId, sessionId)
-        : null;
+      const deepestWorking =
+        mainAgent && mainAgent.status === "waiting"
+          ? stmts.findDeepestWorkingAgent.get(sessionId, sessionId)
+          : null;
       const subagentIsActor = !!deepestWorking;
       if (subagentIsActor && toolName !== "Agent") {
         agentId = deepestWorking.id;

@@ -8,7 +8,7 @@
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw, Columns3, ChevronDown, HelpCircle } from "lucide-react";
 import { api } from "../lib/api";
@@ -194,6 +194,8 @@ export function KanbanBoard() {
       ? t("agentCount", { count: agents.length })
       : t("sessionCount", { count: sessions.length });
 
+  const wsConnected = useSyncExternalStore(eventBus.onConnection, () => eventBus.connected);
+
   const Header = (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
       <div className="flex items-center gap-3 min-w-0">
@@ -201,7 +203,20 @@ export function KanbanBoard() {
           <Columns3 className="w-4.5 h-4.5 text-accent" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-gray-100 truncate">{t("title")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-gray-100 truncate">{t("title")}</h1>
+            {wsConnected ? (
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+                {t("common:live")}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-500/10 border border-gray-500/20 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                {t("common:offline")}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 truncate">{subtitle}</p>
         </div>
       </div>
@@ -216,18 +231,20 @@ export function KanbanBoard() {
 
   if (!loading && total === 0) {
     return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in flex flex-col min-h-[60vh]">
         {Header}
-        <EmptyState
-          icon={Columns3}
-          title={view === "agents" ? t("noAgents") : t("noSessions")}
-          description={view === "agents" ? t("noAgentsDesc") : t("noSessionsDesc")}
-          action={
-            <button onClick={load} className="btn-primary">
-              <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
-            </button>
-          }
-        />
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon={Columns3}
+            title={view === "agents" ? t("noAgents") : t("noSessions")}
+            description={view === "agents" ? t("noAgentsDesc") : t("noSessionsDesc")}
+            action={
+              <button onClick={load} className="btn-primary">
+                <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
+              </button>
+            }
+          />
+        </div>
       </div>
     );
   }
